@@ -23,6 +23,11 @@ pub trait MergeStrategy {
     ///
     /// `visited`: The bitmask of which voxels have already been meshed. A quad's extent will be marked as visited (`true`)
     ///            after `find_quad` returns.
+    ///
+    /// # Safety
+    ///
+    /// Some implementations may use unchecked indexing of `voxels` for performance. If this trait is not invoked with correct
+    /// arguments, access out of bounds may cause undefined behavior.
     unsafe fn find_quad(
         min_index: u32,
         max_width: u32,
