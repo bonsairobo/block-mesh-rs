@@ -1,0 +1,18 @@
+[package]
+name = "block-mesh-bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+block-mesh = { path = ".." }
+
+[dev-dependencies]
+criterion = "0.3"
+
+[profile.bench]
+lto = "thin"
+
+[[bench]]
+name = "bench"
+path = "src/bench.rs"
+harness = false

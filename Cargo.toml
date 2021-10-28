@@ -1,0 +1,9 @@
+[package]
+name = "block-mesh"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ilattice = "0.1"
+ndshape = "0.2"
+ndcopy = "0.2"

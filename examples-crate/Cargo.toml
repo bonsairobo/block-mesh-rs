@@ -1,0 +1,14 @@
+[package]
+name = "block-mesh-examples"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.5", default-features = false, features = ["bevy_wgpu", "bevy_winit", "render", "png", "x11"] }
+
+[dependencies.block-mesh]
+path = ".."
+
+[[example]]
+name = "render"
+path = "render/main.rs"
