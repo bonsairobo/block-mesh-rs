@@ -54,7 +54,14 @@ for i in 0u32..ChunkShape::SIZE {
 }
 
 let mut buffer = GreedyQuadsBuffer::new(voxels.len());
-greedy_quads(&voxels, &ChunkShape {}, [0; 3], [17; 3], &RIGHT_HANDED_Y_UP_CONFIG.faces, &mut buffer);
+greedy_quads(
+    &voxels,
+    &ChunkShape {},
+    [0; 3],
+    [17; 3],
+    &RIGHT_HANDED_Y_UP_CONFIG.faces,
+    &mut buffer
+);
 
 // Some quads were generated.
 assert!(buffer.quads.num_quads() > 0);
