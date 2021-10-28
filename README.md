@@ -8,7 +8,7 @@ Two algorithms are included:
 - [`visible_block_faces`](crate::visible_block_faces): very fast but suboptimal meshes
 - [`greedy_quads`](crate::greedy_quads): not quite as fast, but far fewer triangles are generated
 
-Benchmarks show that [`visible_block_faces`](crate::visible_block_faces) generates about 33 million quads per second on a
+Benchmarks show that [`visible_block_faces`](crate::visible_block_faces) generates about 40 million quads per second on a
 single core of a 2.5 GHz Intel Core i7. Assuming spherical input data, [`greedy_quads`](crate::greedy_quads) can generate a
 more optimal version of the same mesh with 1/3 of the quads, but it takes about 3 times longer. To run the benchmarks
 yourself, `cd bench/ && cargo bench`.

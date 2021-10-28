@@ -23,7 +23,7 @@ pub trait MergeStrategy {
     ///
     /// `visited`: The bitmask of which voxels have already been meshed. A quad's extent will be marked as visited (`true`)
     ///            after `find_quad` returns.
-    fn find_quad(
+    unsafe fn find_quad(
         min_index: u32,
         max_width: u32,
         max_height: u32,
@@ -52,7 +52,7 @@ where
 {
     type Voxel = T;
 
-    fn find_quad(
+    unsafe fn find_quad(
         min_index: u32,
         max_width: u32,
         max_height: u32,
@@ -61,7 +61,7 @@ where
         visited: &[bool],
     ) -> (u32, u32) {
         // Greedily search for the biggest visible quad where all merge values are the same.
-        let quad_value = voxels[min_index as usize].merge_value();
+        let quad_value = voxels.get_unchecked(min_index as usize).merge_value();
 
         // Start by finding the widest quad in the U direction.
         let mut row_start_stride = min_index;
@@ -100,7 +100,7 @@ where
 }
 
 impl<T> VoxelMerger<T> {
-    fn get_row_width(
+    unsafe fn get_row_width(
         voxels: &[T],
         visited: &[bool],
         quad_merge_voxel_value: &T::MergeValue,
@@ -115,7 +115,7 @@ impl<T> VoxelMerger<T> {
         let mut quad_width = 0;
         let mut row_stride = start_stride;
         while quad_width < max_width {
-            let voxel = &voxels[row_stride as usize];
+            let voxel = voxels.get_unchecked(row_stride as usize);
 
             if !face_needs_mesh(voxel, row_stride, visibility_offset, voxels, visited) {
                 break;

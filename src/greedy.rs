@@ -174,14 +174,16 @@ fn greedy_quads_for_face<T, S, Merger>(
         for quad_min in slice_extent.iter3() {
             let quad_min_array = quad_min.to_array();
             let quad_min_index = voxels_shape.linearize(quad_min_array);
-            let quad_min_voxel = &voxels[quad_min_index as usize];
-            if !face_needs_mesh(
-                quad_min_voxel,
-                quad_min_index,
-                face_strides.visibility_offset,
-                voxels,
-                visited,
-            ) {
+            let quad_min_voxel = unsafe { voxels.get_unchecked(quad_min_index as usize) };
+            if unsafe {
+                !face_needs_mesh(
+                    quad_min_voxel,
+                    quad_min_index,
+                    face_strides.visibility_offset,
+                    voxels,
+                    visited,
+                )
+            } {
                 continue;
             }
             // We have at least one face that needs a mesh. We'll try to expand that face into the biggest quad we can find.
@@ -190,14 +192,16 @@ fn greedy_quads_for_face<T, S, Merger>(
             let max_width = u_ub - quad_min_array[i_u];
             let max_height = v_ub - quad_min_array[i_v];
 
-            let (quad_width, quad_height) = Merger::find_quad(
-                quad_min_index,
-                max_width,
-                max_height,
-                &face_strides,
-                voxels,
-                visited,
-            );
+            let (quad_width, quad_height) = unsafe {
+                Merger::find_quad(
+                    quad_min_index,
+                    max_width,
+                    max_height,
+                    &face_strides,
+                    voxels,
+                    visited,
+                )
+            };
             debug_assert!(quad_width >= 1);
             debug_assert!(quad_width <= max_width);
             debug_assert!(quad_height >= 1);
@@ -224,7 +228,7 @@ fn greedy_quads_for_face<T, S, Merger>(
 
 /// Returns true iff the given `voxel` face needs to be meshed. This means that we haven't already meshed it, it is non-empty,
 /// and it's visible (not completely occluded by an adjacent voxel).
-pub(crate) fn face_needs_mesh<T>(
+pub(crate) unsafe fn face_needs_mesh<T>(
     voxel: &T,
     voxel_stride: u32,
     visibility_offset: u32,
@@ -238,7 +242,8 @@ where
         return false;
     }
 
-    let adjacent_voxel = &voxels[voxel_stride.wrapping_add(visibility_offset) as usize];
+    let adjacent_voxel =
+        voxels.get_unchecked(voxel_stride.wrapping_add(visibility_offset) as usize);
 
     // TODO: If the face lies between two transparent voxels, we choose not to mesh it. We might need to extend the IsOpaque
     // trait with different levels of transparency to support this.

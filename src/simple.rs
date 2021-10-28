@@ -38,7 +38,7 @@ pub fn visible_block_faces<T, S>(
     for p in interior.iter3() {
         let p_array = p.to_array();
         let p_index = voxels_shape.linearize(p_array);
-        let p_voxel = &voxels[p_index as usize];
+        let p_voxel = unsafe { voxels.get_unchecked(p_index as usize) };
 
         if p_voxel.is_empty() {
             continue;
@@ -46,7 +46,7 @@ pub fn visible_block_faces<T, S>(
 
         for (face_index, face_stride) in kernel_strides.into_iter().enumerate() {
             let neighbor_index = p_index.wrapping_add(face_stride);
-            let neighbor_voxel = &voxels[neighbor_index as usize];
+            let neighbor_voxel = unsafe { voxels.get_unchecked(neighbor_index as usize) };
 
             // TODO: If the face lies between two transparent voxels, we choose not to mesh it. We might need to extend the
             // IsOpaque trait with different levels of transparency to support this.
