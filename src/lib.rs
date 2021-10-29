@@ -46,9 +46,13 @@
 //!
 //! // This chunk will cover just a single octant of a sphere SDF (radius 15).
 //! let mut voxels = [EMPTY; ChunkShape::SIZE as usize];
-//! for i in 0u32..ChunkShape::SIZE {
+//! for i in 0..ChunkShape::SIZE {
 //!     let [x, y, z] = ChunkShape::delinearize(i);
-//!     voxels[i as usize] = BoolVoxel(((x * x + y * y + z * z) as f32).sqrt() < 15.0);
+//!     voxels[i as usize] = if ((x * x + y * y + z * z) as f32).sqrt() < 15.0 {
+//!         FULL
+//!     } else {
+//!         EMPTY
+//!     };
 //! }
 //!
 //! let mut buffer = GreedyQuadsBuffer::new(voxels.len());
