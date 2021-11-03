@@ -19,7 +19,7 @@ pub trait MergeStrategy {
     ///
     /// `face_strides`: Strides to help with indexing in the necessary directions for this cube face.
     ///
-    /// `voxels`: The entire array of voxel data, indexed by `Stride`.
+    /// `voxels`: The entire array of voxel data.
     ///
     /// `visited`: The bitmask of which voxels have already been meshed. A quad's extent will be marked as visited (`true`)
     ///            after `find_quad` returns.
