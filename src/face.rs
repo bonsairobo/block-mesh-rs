@@ -98,7 +98,8 @@ impl OrientedBlockFace {
     /// Returns the UV coordinates of the 4 corners of the quad. Returns vertices in the same order as
     /// `OrientedBlockFace::quad_corners`.
     ///
-    /// `u_flip_face` should correspond to the field on `QuadCoordinateConfig`. See the docs there for more info.
+    /// `u_flip_face` should correspond to the field on [`QuadCoordinateConfig`](crate::QuadCoordinateConfig). See the docs
+    /// there for more info.
     ///
     /// This is just one way of assigning UVs to voxel quads. It assumes that each material has a single tile texture with
     /// wrapping coordinates, and each voxel face should show the entire texture. It also assumes a particular orientation for

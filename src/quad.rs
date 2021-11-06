@@ -27,9 +27,6 @@ pub const RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateConfig 
 #[derive(Default)]
 pub struct QuadBuffer {
     /// A group of quads for each block face. We rely on [`OrientedBlockFace`] metadata to interpret them.
-    ///
-    /// When using these values for materials and lighting, you can access them using either the quad's minimum voxel
-    /// coordinates or the vertex coordinates given by `OrientedBlockFace::quad_corners`.
     pub groups: [Vec<UnorientedQuad>; 6],
 }
 
@@ -57,6 +54,9 @@ impl QuadBuffer {
 
 /// The minimum voxel and size of a quad, without an orientation. To get the actual corners of the quad, combine with an
 /// [`OrientedBlockFace`].
+///
+/// When using these values for materials and lighting, you can access them using either the quad's minimum voxel coordinates or
+/// the vertex coordinates given by `OrientedBlockFace::quad_corners`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UnorientedQuad {
     /// The minimum voxel in the quad.
