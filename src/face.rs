@@ -1,6 +1,6 @@
 use crate::{Axis, AxisPermutation, SignedAxis, UnorientedQuad};
 
-use ilattice::glam::{IVec3, UVec3, Vec3};
+use ilattice::glam::{IVec3, UVec3};
 
 /// Metadata that's used to aid in the geometric calculations for one of the 6 possible cube faces.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,11 +45,6 @@ impl OrientedBlockFace {
         self.n.as_ivec3() * self.n_sign
     }
 
-    #[inline]
-    pub fn mesh_normal(&self) -> Vec3 {
-        self.signed_normal().as_vec3()
-    }
-
     /// Returns the 4 corners of the quad in this order:
     ///
     /// ```text
@@ -90,7 +85,7 @@ impl OrientedBlockFace {
 
     #[inline]
     pub fn quad_mesh_normals(&self) -> [[f32; 3]; 4] {
-        [self.mesh_normal().to_array(); 4]
+        [self.signed_normal().as_vec3().to_array(); 4]
     }
 
     /// Returns the 6 vertex indices for the quad in order to make two triangles in a mesh. Winding order depends on both the
