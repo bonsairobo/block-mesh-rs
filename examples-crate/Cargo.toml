@@ -12,3 +12,7 @@ path = ".."
 [[example]]
 name = "render"
 path = "render/main.rs"
+
+[[example]]
+name = "uv_mapping"
+path = "uv_mapping/main.rs"
