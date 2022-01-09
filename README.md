@@ -70,3 +70,5 @@ greedy_quads(
 // Some quads were generated.
 assert!(buffer.quads.num_quads() > 0);
 ```
+
+License: MIT OR Apache-2.0
