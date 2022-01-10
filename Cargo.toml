@@ -6,5 +6,11 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 ilattice = "0.1"
-ndshape = "0.2"
-ndcopy = "0.2"
+
+[dependencies.ndcopy]
+git = "https://github.com/dcz-self/ndcopy-rs"
+rev = "499d9b3"
+
+[dependencies.ndshape]
+git = "https://github.com/bonsairobo/ndshape-rs"
+rev = "d184932"

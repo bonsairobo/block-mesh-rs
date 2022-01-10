@@ -64,7 +64,7 @@ pub fn greedy_quads<T, S>(
     output: &mut GreedyQuadsBuffer,
 ) where
     T: MergeVoxel,
-    S: Shape<u32, 3>,
+    S: Shape<3, Coord=u32>,
 {
     greedy_quads_with_merge_strategy::<_, _, VoxelMerger<T>>(
         voxels,
@@ -86,7 +86,7 @@ pub fn greedy_quads_with_merge_strategy<T, S, Merger>(
     output: &mut GreedyQuadsBuffer,
 ) where
     T: Voxel,
-    S: Shape<u32, 3>,
+    S: Shape<3, Coord=u32>,
     Merger: MergeStrategy<Voxel = T>,
 {
     assert!(
@@ -124,7 +124,7 @@ fn greedy_quads_for_face<T, S, Merger>(
     quads: &mut Vec<UnorientedQuad>,
 ) where
     T: Voxel,
-    S: Shape<u32, 3>,
+    S: Shape<3, Coord=u32>,
     Merger: MergeStrategy<Voxel = T>,
 {
     visited.fill(false);
