@@ -1,6 +1,9 @@
 [package]
 name = "block-mesh"
+description = "Fast algorithms for generating voxel block meshes from arrays."
 version = "0.1.0"
+repository = "https://github.com/bonsairobo/block-mesh-rs"
+keywords = ["graphics", "mesh", "voxel"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
