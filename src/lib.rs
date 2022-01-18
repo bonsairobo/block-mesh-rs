@@ -92,3 +92,24 @@ pub trait Voxel {
     /// Returns `true` iff light cannot pass through this voxel.
     fn is_opaque(&self) -> bool;
 }
+
+/// Used as a dummy for functions that must wrap a voxel
+/// but don't want to change the original's properties.
+struct IdentityVoxel<'a, T: Voxel>(&'a T);
+
+impl<'a, T: Voxel> Voxel for IdentityVoxel<'a, T> {
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+    #[inline]
+    fn is_opaque(&self) -> bool {
+        self.0.is_opaque()
+    }
+}
+
+impl<'a, T: Voxel> From<&'a T> for IdentityVoxel<'a, T> {
+    fn from(voxel: &'a T) -> Self {
+        Self(voxel)
+    }
+}
