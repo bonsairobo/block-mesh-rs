@@ -1,4 +1,6 @@
-use crate::{OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad, Voxel};
+use crate::{
+    bounds::assert_in_bounds, OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad, Voxel,
+};
 
 use ilattice::glam::UVec3;
 use ilattice::prelude::Extent;
@@ -18,14 +20,7 @@ pub fn visible_block_faces<T, S>(
     T: Voxel,
     S: Shape<u32, 3>,
 {
-    assert!(
-        voxels_shape.size() as usize <= voxels.len(),
-        "voxel buffer size {:?} is less than the shape size {:?}; would cause access out of bounds",
-        voxels.len(),
-        voxels_shape.size()
-    );
-    assert!((voxels_shape.linearize(min) as usize) < voxels.len(), "min={min:?} would cause access out of bounds");
-    assert!((voxels_shape.linearize(max) as usize) < voxels.len(), "max={max:?} would cause access out of bounds");
+    assert_in_bounds(voxels, voxels_shape, min, max);
 
     let min = UVec3::from(min).as_ivec3();
     let max = UVec3::from(max).as_ivec3();

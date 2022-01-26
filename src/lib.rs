@@ -70,6 +70,7 @@
 //! ```
 
 mod axis;
+mod bounds;
 mod face;
 mod greedy;
 mod quad;
