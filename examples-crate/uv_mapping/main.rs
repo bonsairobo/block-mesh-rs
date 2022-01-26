@@ -104,7 +104,7 @@ fn setup(
         &voxels,
         &SampleShape {},
         [0; 3],
-        [22; 3],
+        [21; 3],
         &faces,
         &mut buffer,
     );

@@ -95,6 +95,8 @@ pub fn greedy_quads_with_merge_strategy<T, S, Merger>(
         voxels.len(),
         voxels_shape.size()
     );
+    assert!((voxels_shape.linearize(min) as usize) < voxels.len(), "min={min:?} would cause access out of bounds");
+    assert!((voxels_shape.linearize(max) as usize) < voxels.len(), "max={max:?} would cause access out of bounds");
 
     let min = UVec3::from(min).as_ivec3();
     let max = UVec3::from(max).as_ivec3();
@@ -248,4 +250,67 @@ where
     // TODO: If the face lies between two transparent voxels, we choose not to mesh it. We might need to extend the IsOpaque
     // trait with different levels of transparency to support this.
     adjacent_voxel.is_empty() || (!adjacent_voxel.is_opaque() && voxel.is_opaque())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::RIGHT_HANDED_Y_UP_CONFIG;
+    use ndshape::{ConstShape, ConstShape3u32};
+
+    #[test]
+    #[should_panic]
+    fn panics_with_max_out_of_bounds_access() {
+        let samples = [EMPTY; SampleShape::SIZE as usize];
+        let mut buffer = GreedyQuadsBuffer::new(samples.len());
+        greedy_quads(
+            &samples,
+            &SampleShape {},
+            [0; 3],
+            [34, 33, 33],
+            &RIGHT_HANDED_Y_UP_CONFIG.faces,
+            &mut buffer,
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn panics_with_min_out_of_bounds_access() {
+        let samples = [EMPTY; SampleShape::SIZE as usize];
+        let mut buffer = GreedyQuadsBuffer::new(samples.len());
+        greedy_quads(
+            &samples,
+            &SampleShape {},
+            [0, 34, 0],
+            [33; 3],
+            &RIGHT_HANDED_Y_UP_CONFIG.faces,
+            &mut buffer,
+        );
+    }
+
+    type SampleShape = ConstShape3u32<34, 34, 34>;
+
+    /// Basic voxel type with one byte of texture layers
+    #[derive(Default, Clone, Copy, Eq, PartialEq)]
+    struct BoolVoxel(bool);
+
+    const EMPTY: BoolVoxel = BoolVoxel(false);
+
+    impl Voxel for BoolVoxel {
+        fn is_empty(&self) -> bool {
+            *self == EMPTY
+        }
+
+        fn is_opaque(&self) -> bool {
+            true
+        }
+    }
+
+    impl MergeVoxel for BoolVoxel {
+        type MergeValue = Self;
+
+        fn merge_value(&self) -> Self::MergeValue {
+            *self
+        }
+    }
 }
