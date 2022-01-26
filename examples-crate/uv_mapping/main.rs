@@ -1,12 +1,7 @@
-use bevy::{
-    asset::LoadState,
-    prelude::*,
-    render::{
-        mesh::Indices,
-        pipeline::PrimitiveTopology,
-        texture::{AddressMode, SamplerDescriptor},
-    },
-};
+use bevy::asset::LoadState;
+use bevy::prelude::*;
+use bevy::render::mesh::Indices;
+use bevy::render::render_resource::{AddressMode, PrimitiveTopology, SamplerDescriptor};
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, RIGHT_HANDED_Y_UP_CONFIG};
 
@@ -18,23 +13,22 @@ enum AppState {
 
 const UV_SCALE: f32 = 1.0 / 16.0;
 
-struct Loading(Handle<Texture>);
+struct Loading(Handle<Image>);
 
 fn main() {
-    App::build()
+    App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(State::new(AppState::Loading))
         .add_state(AppState::Loading)
-        .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_assets.system()))
-        .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_loaded.system()))
-        .add_system_set(SystemSet::on_enter(AppState::Run).with_system(setup.system()))
-        .add_system_set(
-            SystemSet::on_update(AppState::Run).with_system(camera_rotation_system.system()),
-        )
+        .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_assets))
+        .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_loaded))
+        .add_system_set(SystemSet::on_enter(AppState::Run).with_system(setup))
+        .add_system_set(SystemSet::on_update(AppState::Run).with_system(camera_rotation_system))
         .run();
 }
 
 fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+    debug!("load");
     let handle = asset_server.load("uv_checker.png");
     commands.insert_resource(Loading(handle));
 }
@@ -45,6 +39,7 @@ fn check_loaded(
     handle: Res<Loading>,
     asset_server: Res<AssetServer>,
 ) {
+    debug!("check loaded");
     if let LoadState::Loaded = asset_server.get_load_state(&handle.0) {
         state.set(AppState::Run).unwrap();
     }
@@ -77,12 +72,13 @@ fn setup(
     texture_handle: Res<Loading>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut textures: ResMut<Assets<Texture>>,
+    mut textures: ResMut<Assets<Image>>,
 ) {
+    debug!("setup");
     let mut texture = textures.get_mut(&texture_handle.0).unwrap();
 
     // Set the texture to tile over the entire quad
-    texture.sampler = SamplerDescriptor {
+    texture.sampler_descriptor = SamplerDescriptor {
         address_mode_u: AddressMode::Repeat,
         address_mode_v: AddressMode::Repeat,
         ..Default::default()
@@ -151,9 +147,9 @@ fn setup(
         ..Default::default()
     });
 
-    commands.spawn_bundle(LightBundle {
+    commands.spawn_bundle(PointLightBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 50.0, 50.0)),
-        light: Light {
+        point_light: PointLight {
             range: 200.0,
             intensity: 20000.0,
             ..Default::default()
