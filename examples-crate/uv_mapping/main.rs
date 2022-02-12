@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::{AddressMode, PrimitiveTopology, SamplerDescriptor};
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
-use block_mesh::{greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, RIGHT_HANDED_Y_UP_CONFIG};
+use block_mesh::{greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum AppState {
@@ -58,12 +58,12 @@ impl MergeVoxel for BoolVoxel {
 }
 
 impl Voxel for BoolVoxel {
-    fn is_empty(&self) -> bool {
-        !self.0
-    }
-
-    fn is_opaque(&self) -> bool {
-        true
+    fn get_visibility(&self) -> VoxelVisibility {
+        if self.0 {
+            VoxelVisibility::Opaque
+        } else {
+            VoxelVisibility::Empty
+        }
     }
 }
 

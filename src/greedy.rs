@@ -2,7 +2,7 @@ mod merge_strategy;
 
 pub use merge_strategy::*;
 
-use crate::{bounds::assert_in_bounds, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel};
+use crate::{bounds::assert_in_bounds, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel, VoxelVisibility};
 
 use ilattice::glam::UVec3;
 use ilattice::prelude::Extent;
@@ -233,7 +233,7 @@ pub(crate) unsafe fn face_needs_mesh<T>(
 where
     T: Voxel,
 {
-    if voxel.is_empty() || visited[voxel_stride as usize] {
+    if voxel.get_visibility() == VoxelVisibility::Empty || visited[voxel_stride as usize] {
         return false;
     }
 
@@ -242,7 +242,11 @@ where
 
     // TODO: If the face lies between two transparent voxels, we choose not to mesh it. We might need to extend the IsOpaque
     // trait with different levels of transparency to support this.
-    adjacent_voxel.is_empty() || (!adjacent_voxel.is_opaque() && voxel.is_opaque())
+    match adjacent_voxel.get_visibility() {
+        VoxelVisibility::Empty => true,
+        VoxelVisibility::Translucent => voxel.get_visibility() == VoxelVisibility::Opaque,
+        VoxelVisibility::Opaque => false,
+    }
 }
 
 #[cfg(test)]
@@ -290,12 +294,12 @@ mod tests {
     const EMPTY: BoolVoxel = BoolVoxel(false);
 
     impl Voxel for BoolVoxel {
-        fn is_empty(&self) -> bool {
-            *self == EMPTY
-        }
-
-        fn is_opaque(&self) -> bool {
-            true
+        fn get_visibility(&self) -> VoxelVisibility {
+            if *self == EMPTY {
+                VoxelVisibility::Empty
+            } else {
+                VoxelVisibility::Opaque
+            }
         }
     }
 
