@@ -1,10 +1,11 @@
 use crate::{
-    bounds::assert_in_bounds, OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad, Voxel, VoxelVisibility,
+    bounds::assert_in_bounds, IdentityVoxel, OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad, Voxel, VoxelVisibility,
 };
 
 use ilattice::glam::UVec3;
 use ilattice::prelude::Extent;
 use ndshape::Shape;
+
 
 /// A fast and simple meshing algorithm that produces a single quad for every visible face of a block.
 ///
@@ -18,6 +19,31 @@ pub fn visible_block_faces<T, S>(
     output: &mut UnitQuadBuffer,
 ) where
     T: Voxel,
+    S: Shape<u32, 3>,
+{
+    visible_block_faces_with_voxel_view::<_, IdentityVoxel<T>, _>(
+        voxels,
+        voxels_shape,
+        min,
+        max,
+        faces,
+        output,
+    )
+}
+
+/// Same as [`visible_block_faces`](visible_block_faces),
+/// with the additional ability to interpret the array as some other type.
+/// Use this if you want to mesh the same array multiple times
+/// with different sets of voxels being visible.
+pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
+    voxels: &'a [T],
+    voxels_shape: &S,
+    min: [u32; 3],
+    max: [u32; 3],
+    faces: &[OrientedBlockFace; 6],
+    output: &mut UnitQuadBuffer,
+) where
+    V: Voxel + From<&'a T>,
     S: Shape<u32, 3>,
 {
     assert_in_bounds(voxels, voxels_shape, min, max);
@@ -35,7 +61,7 @@ pub fn visible_block_faces<T, S>(
     for p in interior.iter3() {
         let p_array = p.to_array();
         let p_index = voxels_shape.linearize(p_array);
-        let p_voxel = unsafe { voxels.get_unchecked(p_index as usize) };
+        let p_voxel = V::from(unsafe { voxels.get_unchecked(p_index as usize) });
 
         if let VoxelVisibility::Empty = p_voxel.get_visibility() {
             continue;
@@ -43,7 +69,7 @@ pub fn visible_block_faces<T, S>(
 
         for (face_index, face_stride) in kernel_strides.into_iter().enumerate() {
             let neighbor_index = p_index.wrapping_add(face_stride);
-            let neighbor_voxel = unsafe { voxels.get_unchecked(neighbor_index as usize) };
+            let neighbor_voxel = V::from(unsafe { voxels.get_unchecked(neighbor_index as usize) });
 
             // TODO: If the face lies between two transparent voxels, we choose not to mesh it. We might need to extend the
             // IsOpaque trait with different levels of transparency to support this.
