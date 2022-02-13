@@ -1,5 +1,5 @@
 use crate::{
-    bounds::assert_in_bounds, IdentityVoxel, OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad, Voxel,
+    bounds::assert_in_bounds, IdentityVoxel, OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad, Voxel, VoxelVisibility,
 };
 
 use ilattice::glam::UVec3;
@@ -63,7 +63,7 @@ pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
         let p_index = voxels_shape.linearize(p_array);
         let p_voxel = V::from(unsafe { voxels.get_unchecked(p_index as usize) });
 
-        if p_voxel.is_empty() {
+        if let VoxelVisibility::Empty = p_voxel.get_visibility() {
             continue;
         }
 
@@ -73,8 +73,11 @@ pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
 
             // TODO: If the face lies between two transparent voxels, we choose not to mesh it. We might need to extend the
             // IsOpaque trait with different levels of transparency to support this.
-            let face_needs_mesh =
-                neighbor_voxel.is_empty() || (!neighbor_voxel.is_opaque() && p_voxel.is_opaque());
+            let face_needs_mesh = match neighbor_voxel.get_visibility() {
+                VoxelVisibility::Empty => true,
+                VoxelVisibility::Translucent => p_voxel.get_visibility() == VoxelVisibility::Opaque,
+                VoxelVisibility::Opaque => false,
+            };
 
             if face_needs_mesh {
                 output.groups[face_index].push(UnorientedUnitQuad { minimum: p_array });
@@ -128,12 +131,13 @@ mod tests {
     const EMPTY: BoolVoxel = BoolVoxel(false);
 
     impl Voxel for BoolVoxel {
-        fn is_empty(&self) -> bool {
-            *self == EMPTY
-        }
-
-        fn is_opaque(&self) -> bool {
-            true
+        fn get_visibility(&self) -> VoxelVisibility {
+            if *self == EMPTY {
+                VoxelVisibility::Empty
+            } else {
+                VoxelVisibility::Opaque
+            }
         }
     }
+
 }

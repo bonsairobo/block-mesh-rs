@@ -15,7 +15,7 @@
 //!
 //! ```
 //! use block_mesh::ndshape::{ConstShape, ConstShape3u32};
-//! use block_mesh::{greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, RIGHT_HANDED_Y_UP_CONFIG};
+//! use block_mesh::{greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG};
 //!
 //! #[derive(Clone, Copy, Eq, PartialEq)]
 //! struct BoolVoxel(bool);
@@ -24,12 +24,12 @@
 //! const FULL: BoolVoxel = BoolVoxel(true);
 //!
 //! impl Voxel for BoolVoxel {
-//!     fn is_empty(&self) -> bool {
-//!         *self == EMPTY
-//!     }
-//!
-//!     fn is_opaque(&self) -> bool {
-//!         true
+//!     fn get_visibility(&self) -> VoxelVisibility {
+//!         if *self == EMPTY {
+//!             VoxelVisibility::Empty
+//!         } else {
+//!             VoxelVisibility::Opaque
+//!         }
 //!     }
 //! }
 //!
@@ -85,12 +85,21 @@ pub use simple::*;
 pub use ilattice;
 pub use ndshape;
 
-pub trait Voxel {
-    /// Returns `true` iff this voxel should not produce any geometry.
-    fn is_empty(&self) -> bool;
+/// Describes how this voxel influences mesh generation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VoxelVisibility {
+   /// This voxel should not produce any geometry.
+   Empty,
+   /// Should produce geometry, and also light can pass through.
+   Translucent,
+   /// Light cannot pass through this voxel.
+   Opaque,
+}
 
-    /// Returns `true` iff light cannot pass through this voxel.
-    fn is_opaque(&self) -> bool;
+/// Implement on your voxel types to inform the library
+/// how to generate geometry for this voxel.
+pub trait Voxel {
+    fn get_visibility(&self) -> VoxelVisibility;
 }
 
 /// Used as a dummy for functions that must wrap a voxel
