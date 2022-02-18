@@ -1,3 +1,6 @@
+//! [![Crates.io](https://img.shields.io/crates/v/block-mesh.svg)](https://crates.io/crates/block-mesh)
+//! [![Docs.rs](https://docs.rs/block-mesh/badge.svg)](https://docs.rs/block-mesh)
+//!
 //! Fast algorithms for generating voxel block meshes.
 //!
 //! ![Mesh Examples](https://raw.githubusercontent.com/bonsairobo/block-mesh-rs/main/examples-crate/render/mesh_examples.png)
