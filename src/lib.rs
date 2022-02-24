@@ -73,10 +73,12 @@
 //! ```
 
 mod bounds;
+mod buffer;
 pub mod geometry;
 mod greedy;
 mod simple;
 
+pub use buffer::*;
 #[doc(inline)]
 pub use geometry::*;
 pub use greedy::*;

@@ -117,3 +117,67 @@ mod quad;
 pub use axis::*;
 pub use face::*;
 pub use quad::*;
+
+/// A configuration of XYZ --> NUV axis mappings and orientations of the cube
+/// faces for a given coordinate system.
+///
+/// See the [`geometry` module documentation][crate::geometry] for more
+/// information on `{N, U, V}` space.
+#[derive(Clone)]
+pub struct QuadCoordinateConfig {
+    pub faces: [OrientedBlockFace; 6],
+
+    /// For a given coordinate system, one of the two axes that isn't UP must be
+    /// flipped in the U texel coordinate direction to avoid incorrect texture
+    /// mirroring. For example, in a right-handed coordinate system with +Y
+    /// pointing up, you should set `u_flip_face` to [`Axis::X`], because those
+    /// faces need their U coordinates to be flipped relative to the other
+    /// faces:
+    ///
+    /// ```text
+    ///                         +X face  O           
+    ///         +Z face                / |           
+    ///     ^  O--------O          ^ O   |           
+    ///     |  |        |          | |   |           
+    ///  +V |  |        |       +V | |   O  ^        
+    ///     |  |        |          | | /  /          
+    ///     |  O--------O          | O  /                 
+    ///      ------------ >        |  /  +U
+    ///           +U                
+    ///
+    ///                    +Y      
+    ///                    | -Z    
+    ///              -X____|/____+X
+    ///                   /|       
+    ///                 +Z |       
+    ///                    -Y      
+    /// ```
+    ///
+    /// As you can see, for the +Z face, +U is toward positive X. But for the +X
+    /// face, +U is towards **negative** Z.
+    pub u_flip_face: Axis,
+}
+
+/// Coordinate configuration for a right-handed coordinate system with Y up.
+///
+/// ```text
+///       +Y      
+///       | -Z    
+/// -X____|/____+X
+///      /|       
+///    +Z |       
+///       -Y      
+/// ```
+pub const RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateConfig {
+    // Y is always in the V direction when it's not the normal. When Y is the
+    // normal, right-handedness determines that we must use Yzx permutations.
+    faces: [
+        OrientedBlockFace::new(-1, AxisPermutation::Xzy),
+        OrientedBlockFace::new(-1, AxisPermutation::Yzx),
+        OrientedBlockFace::new(-1, AxisPermutation::Zxy),
+        OrientedBlockFace::new(1, AxisPermutation::Xzy),
+        OrientedBlockFace::new(1, AxisPermutation::Yzx),
+        OrientedBlockFace::new(1, AxisPermutation::Zxy),
+    ],
+    u_flip_face: Axis::X,
+};
