@@ -72,17 +72,14 @@
 //! assert!(buffer.quads.num_quads() > 0);
 //! ```
 
-mod axis;
 mod bounds;
-mod face;
+mod geometry;
 mod greedy;
-mod quad;
 mod simple;
 
-pub use axis::*;
-pub use face::*;
+#[doc(inline)]
+pub use geometry::*;
 pub use greedy::*;
-pub use quad::*;
 pub use simple::*;
 
 pub use ilattice;
@@ -91,12 +88,12 @@ pub use ndshape;
 /// Describes how this voxel influences mesh generation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VoxelVisibility {
-   /// This voxel should not produce any geometry.
-   Empty,
-   /// Should produce geometry, and also light can pass through.
-   Translucent,
-   /// Light cannot pass through this voxel.
-   Opaque,
+    /// This voxel should not produce any geometry.
+    Empty,
+    /// Should produce geometry, and also light can pass through.
+    Translucent,
+    /// Light cannot pass through this voxel.
+    Opaque,
 }
 
 /// Implement on your voxel types to inform the library
