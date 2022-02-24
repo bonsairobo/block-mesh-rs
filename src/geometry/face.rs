@@ -52,14 +52,16 @@ impl OrientedBlockFace {
     ///           ^
     ///     ^       \
     ///     |         \
-    ///  +v |   0 ----> 1
+    ///  +V |   0 ----> 1
     ///     |
     ///      -------->
-    ///        +u
+    ///        +U
+    ///
+    /// (+N pointing out of the screen)
     /// ```
     ///
-    /// Note that this is natural when UV coordinates have (0,0) at the bottom left, but when (0,0) is at the top left, V must
-    /// be flipped.
+    /// Note that this is natural when UV coordinates have (0,0) at the bottom
+    /// left, but when (0,0) is at the top left, V must be flipped.
     #[inline]
     pub fn quad_corners(&self, quad: &UnorientedQuad) -> [UVec3; 4] {
         let w_vec = self.u * quad.width;
@@ -88,24 +90,32 @@ impl OrientedBlockFace {
         [self.signed_normal().as_vec3().to_array(); 4]
     }
 
-    /// Returns the 6 vertex indices for the quad in order to make two triangles in a mesh. Winding order depends on both the
-    /// sign of the surface normal and the permutation of the UVs.
+    /// Returns the 6 vertex indices for the quad in order to make two triangles
+    /// in a mesh. Winding order depends on both the sign of the surface normal
+    /// and the permutation of the UVs.
+    ///
+    /// Front faces will be wound counterclockwise, and back faces clockwise, as
+    /// per convention.
     #[inline]
     pub fn quad_mesh_indices(&self, start: u32) -> [u32; 6] {
         quad_indices(start, self.n_sign * self.permutation.sign() > 0)
     }
 
-    /// Returns the UV coordinates of the 4 corners of the quad. Returns vertices in the same order as
-    /// `OrientedBlockFace::quad_corners`.
+    /// Returns the UV coordinates of the 4 corners of the quad. Returns
+    /// vertices in the same order as [`OrientedBlockFace::quad_corners`].
     ///
-    /// `u_flip_face` should correspond to the field on [`QuadCoordinateConfig`](crate::QuadCoordinateConfig). See the docs
+    /// `u_flip_face` should correspond to the field on
+    /// [`QuadCoordinateConfig`](crate::QuadCoordinateConfig). See the docs
     /// there for more info.
     ///
-    /// This is just one way of assigning UVs to voxel quads. It assumes that each material has a single tile texture with
-    /// wrapping coordinates, and each voxel face should show the entire texture. It also assumes a particular orientation for
-    /// the texture. This should be sufficient for minecraft-style meshing.
+    /// This is just one way of assigning UVs to voxel quads. It assumes that
+    /// each material has a single tile texture with wrapping coordinates, and
+    /// each voxel face should show the entire texture. It also assumes a
+    /// particular orientation for the texture. This should be sufficient for
+    /// minecraft-style meshing.
     ///
-    /// If you need to use a texture atlas, you must calculate your own coordinates from the `Quad`.
+    /// If you need to use a texture atlas, you must calculate your own
+    /// coordinates from the `Quad`.
     #[inline]
     pub fn tex_coords(
         &self,
@@ -149,8 +159,9 @@ impl OrientedBlockFace {
     }
 }
 
-/// Returns the vertex indices for a single quad (two triangles). The triangles may have either clockwise or counter-clockwise
-/// winding. `start` is the first index.
+/// Returns the vertex indices for a single quad (two triangles). The triangles
+/// may have either clockwise or counter-clockwise winding. `start` is the first
+/// index.
 fn quad_indices(start: u32, counter_clockwise: bool) -> [u32; 6] {
     if counter_clockwise {
         [start, start + 1, start + 2, start + 1, start + 3, start + 2]
