@@ -26,6 +26,25 @@ impl Axis {
     }
 }
 
+/// One of the six possible `{N, U, V}` --> `{X, Y, Z}` mappings.
+///
+/// This can be combined with a `-1` or `+1` sign for the **N**ormal axis to
+/// make an [`OrientedBlockFace`][crate::OrientedBlockFace].
+///
+/// See the [`geometry` module documentation][crate::geometry] for more
+/// information on `{N, U, V}` space.
+///
+/// # Even and Odd
+///
+/// Even permutations:
+/// - [AxisPermutation::Xyz]
+/// - [AxisPermutation::Zxy]
+/// - [AxisPermutation::Yzx]
+///
+/// Odd permutations:
+/// - [AxisPermutation::Zyx]
+/// - [AxisPermutation::Xzy]
+/// - [AxisPermutation::Yxz]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AxisPermutation {
     // Even permutations
@@ -69,6 +88,17 @@ impl AxisPermutation {
         }
     }
 
+    /// Returns the [`Axes`] in the order specified by the permutation.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use block_mesh::*;
+    /// let xyz = AxisPermutation::Xyz;
+    /// assert_eq!(xyz.axes(), [Axis::X, Axis::Y, Axis::Z]);
+    /// ```
+    ///
+    /// [`Axes`]: Axis
     #[inline]
     pub const fn axes(&self) -> [Axis; 3] {
         match self {
@@ -82,6 +112,7 @@ impl AxisPermutation {
     }
 }
 
+/// Either the -X, +X, -Y, +Y, -Z, or +Z axis.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
 pub enum SignedAxis {

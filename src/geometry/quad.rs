@@ -1,18 +1,58 @@
 use crate::{Axis, AxisPermutation, OrientedBlockFace};
 
-/// A configuration of XYZ --> NUV axis mappings and orientations of the cube faces for a given coordinate system.
+/// A configuration of XYZ --> NUV axis mappings and orientations of the cube
+/// faces for a given coordinate system.
+///
+/// See the [`geometry` module documentation][crate::geometry] for more
+/// information on `{N, U, V}` space.
 #[derive(Clone)]
 pub struct QuadCoordinateConfig {
     pub faces: [OrientedBlockFace; 6],
-    /// For a given coordinate system, one of the two axes that isn't UP must be flipped in the U texel coordinate direction to
-    /// avoid incorrect texture mirroring. For example, in a right-handed coordinate system with +Y pointing up, you should set
-    /// `u_flip_face` to [`Axis::X`], because those faces need their U coordinates to be flipped relative to the other faces.
+
+    /// For a given coordinate system, one of the two axes that isn't UP must be
+    /// flipped in the U texel coordinate direction to avoid incorrect texture
+    /// mirroring. For example, in a right-handed coordinate system with +Y
+    /// pointing up, you should set `u_flip_face` to [`Axis::X`], because those
+    /// faces need their U coordinates to be flipped relative to the other
+    /// faces:
+    ///
+    /// ```text
+    ///                         +X face  O           
+    ///         +Z face                / |           
+    ///     ^  O--------O          ^ O   |           
+    ///     |  |        |          | |   |           
+    ///  +V |  |        |       +V | |   O  ^        
+    ///     |  |        |          | | /  /          
+    ///     |  O--------O          | O  /                 
+    ///      ------------ >        |  /  +U
+    ///           +U                
+    ///
+    ///                    +Y      
+    ///                    | -Z    
+    ///              -X____|/____+X
+    ///                   /|       
+    ///                 +Z |       
+    ///                    -Y      
+    /// ```
+    ///
+    /// As you can see, for the +Z face, +U is toward positive X. But for the +X
+    /// face, +U is towards **negative** Z.
     pub u_flip_face: Axis,
 }
 
+/// Coordinate configuration for a right-handed coordinate system with Y up.
+///
+/// ```text
+///       +Y      
+///       | -Z    
+/// -X____|/____+X
+///      /|       
+///    +Z |       
+///       -Y      
+/// ```
 pub const RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateConfig {
-    // Y is always in the V direction when it's not the normal. When Y is the normal, right-handedness determines that
-    // we must use Yzx permutations.
+    // Y is always in the V direction when it's not the normal. When Y is the
+    // normal, right-handedness determines that we must use Yzx permutations.
     faces: [
         OrientedBlockFace::new(-1, AxisPermutation::Xzy),
         OrientedBlockFace::new(-1, AxisPermutation::Yzx),
@@ -26,7 +66,8 @@ pub const RIGHT_HANDED_Y_UP_CONFIG: QuadCoordinateConfig = QuadCoordinateConfig 
 
 #[derive(Default)]
 pub struct QuadBuffer {
-    /// A group of quads for each block face. We rely on [`OrientedBlockFace`] metadata to interpret them.
+    /// A group of quads for each block face. We rely on [`OrientedBlockFace`]
+    /// metadata to interpret them.
     pub groups: [Vec<UnorientedQuad>; 6],
 }
 
@@ -52,11 +93,12 @@ impl QuadBuffer {
     }
 }
 
-/// The minimum voxel and size of a quad, without an orientation. To get the actual corners of the quad, combine with an
-/// [`OrientedBlockFace`].
+/// The minimum voxel and size of a quad, without an orientation. To get the
+/// actual corners of the quad, combine with an [`OrientedBlockFace`].
 ///
-/// When using these values for materials and lighting, you can access them using either the quad's minimum voxel coordinates or
-/// the vertex coordinates given by `OrientedBlockFace::quad_corners`.
+/// When using these values for materials and lighting, you can access them
+/// using either the quad's minimum voxel coordinates or the vertex coordinates
+/// given by `OrientedBlockFace::quad_corners`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UnorientedQuad {
     /// The minimum voxel in the quad.
@@ -80,10 +122,12 @@ impl From<UnorientedUnitQuad> for UnorientedQuad {
 
 #[derive(Default)]
 pub struct UnitQuadBuffer {
-    /// A group of quads for each block face. We rely on [`OrientedBlockFace`] metadata to interpret them.
+    /// A group of quads for each block face. We rely on [`OrientedBlockFace`]
+    /// metadata to interpret them.
     ///
-    /// When using these values for materials and lighting, you can access them using either the quad's minimum voxel
-    /// coordinates or the vertex coordinates given by `OrientedBlockFace::quad_corners`.
+    /// When using these values for materials and lighting, you can access them
+    /// using either the quad's minimum voxel coordinates or the vertex
+    /// coordinates given by [`OrientedBlockFace::quad_corners`].
     pub groups: [Vec<UnorientedUnitQuad>; 6],
 }
 
@@ -93,6 +137,7 @@ impl UnitQuadBuffer {
         Self { groups: [EMPTY; 6] }
     }
 
+    /// Clears the buffer.
     pub fn reset(&mut self) {
         for group in self.groups.iter_mut() {
             group.clear();
@@ -109,8 +154,9 @@ impl UnitQuadBuffer {
     }
 }
 
-/// A quad covering a single voxel (just a single block face), without an orientation. To get the actual corners of the quad,
-/// combine with an [`OrientedBlockFace`].
+/// A quad covering a single voxel (just a single block face), without an
+/// orientation. To get the actual corners of the quad, combine with an
+/// [`OrientedBlockFace`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UnorientedUnitQuad {
     /// The minimum voxel in the quad.

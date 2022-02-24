@@ -73,7 +73,7 @@
 //! ```
 
 mod bounds;
-mod geometry;
+pub mod geometry;
 mod greedy;
 mod simple;
 
