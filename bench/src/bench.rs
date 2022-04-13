@@ -1,7 +1,7 @@
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
     greedy_quads, visible_block_faces, GreedyQuadsBuffer, MergeVoxel, UnitQuadBuffer, Voxel,
-    RIGHT_HANDED_Y_UP_CONFIG,
+    VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
 };
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
@@ -166,12 +166,12 @@ const EMPTY: BoolVoxel = BoolVoxel(false);
 const FULL: BoolVoxel = BoolVoxel(true);
 
 impl Voxel for BoolVoxel {
-    fn is_empty(&self) -> bool {
-        *self == EMPTY
-    }
-
-    fn is_opaque(&self) -> bool {
-        true
+    fn get_visibility(&self) -> VoxelVisibility {
+        if *self == EMPTY {
+            VoxelVisibility::Empty
+        } else {
+            VoxelVisibility::Opaque
+        }
     }
 }
 
