@@ -19,7 +19,7 @@ pub fn visible_block_faces<T, S>(
     output: &mut UnitQuadBuffer,
 ) where
     T: Voxel,
-    S: Shape<u32, 3>,
+    S: Shape<3, Coord=u32>,
 {
     visible_block_faces_with_voxel_view::<_, IdentityVoxel<T>, _>(
         voxels,
