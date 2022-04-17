@@ -4,7 +4,7 @@ use ndshape::Shape;
 
 pub fn assert_in_bounds<T, S>(voxels: &[T], voxels_shape: &S, min: [u32; 3], max: [u32; 3])
 where
-    S: Shape<u32, 3>,
+    S: Shape<3, Coord = u32>,
 {
     assert!(
         voxels_shape.size() as usize <= voxels.len(),

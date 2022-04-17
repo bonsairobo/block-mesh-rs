@@ -9,5 +9,5 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 ilattice = "0.1"
-ndshape = "0.2"
-ndcopy = "0.2"
+ndshape = "0.3"
+ndcopy = "0.3"
