@@ -39,6 +39,16 @@ impl OrientedBlockFace {
             AxisPermutation::even_with_normal_axis(normal.unsigned_axis()),
         )
     }
+    
+    #[inline]
+    pub fn n_sign(&self) -> i32 {
+        self.n_sign
+    }
+    
+    #[inline]
+    pub fn permutation(&self) -> AxisPermutation {
+        self.permutation
+    }
 
     #[inline]
     pub fn signed_normal(&self) -> IVec3 {
