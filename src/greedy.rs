@@ -11,10 +11,13 @@ use ndshape::Shape;
 
 pub trait MergeVoxel: Voxel {
     type MergeValue: Eq;
+    type MergeValueFacingNeighbour: Eq;
 
     /// The value used to determine if this voxel can join a given quad in the mesh. This value will be constant for all voxels
     /// in the same quad. Often this is some material identifier so that the same texture can be used for a full quad.
     fn merge_value(&self) -> Self::MergeValue;
+
+    fn merge_value_facing_neighbour(&self) -> Self::MergeValueFacingNeighbour;
 }
 
 /// Contains the output from the [`greedy_quads`] algorithm. The quads can be used to generate a mesh. See the methods on
@@ -305,9 +308,14 @@ mod tests {
 
     impl MergeVoxel for BoolVoxel {
         type MergeValue = Self;
+        type MergeValueFacingNeighbour = bool;
 
         fn merge_value(&self) -> Self::MergeValue {
             *self
+        }
+
+        fn merge_value_facing_neighbour(&self) -> Self::MergeValueFacingNeighbour {
+            true
         }
     }
 }

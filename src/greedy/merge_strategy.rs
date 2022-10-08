@@ -67,6 +67,9 @@ where
     ) -> (u32, u32) {
         // Greedily search for the biggest visible quad where all merge values are the same.
         let quad_value = voxels.get_unchecked(min_index as usize).merge_value();
+        let quad_neighbour_value = voxels
+            .get_unchecked((min_index + face_strides.visibility_offset) as usize)
+            .merge_value_facing_neighbour();
 
         // Start by finding the widest quad in the U direction.
         let mut row_start_stride = min_index;
@@ -74,6 +77,7 @@ where
             voxels,
             visited,
             &quad_value,
+            &quad_neighbour_value,
             face_strides.visibility_offset,
             row_start_stride,
             face_strides.u_stride,
@@ -88,6 +92,7 @@ where
                 voxels,
                 visited,
                 &quad_value,
+                &quad_neighbour_value,
                 face_strides.visibility_offset,
                 row_start_stride,
                 face_strides.u_stride,
@@ -109,6 +114,7 @@ impl<T> VoxelMerger<T> {
         voxels: &[T],
         visited: &[bool],
         quad_merge_voxel_value: &T::MergeValue,
+        quad_merge_voxel_value_facing_neighbour: &T::MergeValueFacingNeighbour,
         visibility_offset: u32,
         start_stride: u32,
         delta_stride: u32,
@@ -121,12 +127,17 @@ impl<T> VoxelMerger<T> {
         let mut row_stride = start_stride;
         while quad_width < max_width {
             let voxel = voxels.get_unchecked(row_stride as usize);
+            let neighbour = voxels.get_unchecked((row_stride + visibility_offset) as usize);
 
             if !face_needs_mesh(voxel, row_stride, visibility_offset, voxels, visited) {
                 break;
             }
 
-            if !voxel.merge_value().eq(quad_merge_voxel_value) {
+            if !voxel.merge_value().eq(quad_merge_voxel_value)
+                || !neighbour
+                    .merge_value_facing_neighbour()
+                    .eq(quad_merge_voxel_value_facing_neighbour)
+            {
                 // Voxel needs to be non-empty and match the quad merge value.
                 break;
             }
