@@ -167,6 +167,12 @@ impl OrientedBlockFace {
             ],
         }
     }
+
+    // Ambient Occlusion
+    #[inline]
+    pub fn quad_mesh_ao(&self, quad: &UnorientedQuad) -> [u8; 4] {
+        quad.ao
+    }
 }
 
 /// Returns the vertex indices for a single quad (two triangles). The triangles

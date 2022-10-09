@@ -1,5 +1,7 @@
 mod merge_strategy;
 
+use std::collections::HashMap;
+
 pub use merge_strategy::*;
 
 use crate::{bounds::assert_in_bounds, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel, VoxelVisibility};
@@ -58,36 +60,17 @@ impl GreedyQuadsBuffer {
 ///
 /// All quads created will have the same "merge value" as defined by the [`MergeVoxel`] trait. The quads can be post-processed
 /// into meshes as the user sees fit.
-pub fn greedy_quads<T, S>(
-    voxels: &[T],
-    voxels_shape: &S,
-    min: [u32; 3],
-    max: [u32; 3],
-    faces: &[OrientedBlockFace; 6],
-    output: &mut GreedyQuadsBuffer,
-) where
+pub fn greedy_quads<T, S>(voxels: &[T], voxels_shape: &S, min: [u32; 3], max: [u32; 3], faces: &[OrientedBlockFace; 6], output: &mut GreedyQuadsBuffer)
+where
     T: MergeVoxel,
     S: Shape<3, Coord = u32>,
 {
-    greedy_quads_with_merge_strategy::<_, _, VoxelMerger<T>>(
-        voxels,
-        voxels_shape,
-        min,
-        max,
-        faces,
-        output,
-    )
+    greedy_quads_with_merge_strategy::<_, _, VoxelMerger<T>>(voxels, voxels_shape, min, max, faces, output)
 }
 
 /// Run the greedy meshing algorithm with a custom quad merging strategy using the [`MergeStrategy`] trait.
-pub fn greedy_quads_with_merge_strategy<T, S, Merger>(
-    voxels: &[T],
-    voxels_shape: &S,
-    min: [u32; 3],
-    max: [u32; 3],
-    faces: &[OrientedBlockFace; 6],
-    output: &mut GreedyQuadsBuffer,
-) where
+pub fn greedy_quads_with_merge_strategy<T, S, Merger>(voxels: &[T], voxels_shape: &S, min: [u32; 3], max: [u32; 3], faces: &[OrientedBlockFace; 6], output: &mut GreedyQuadsBuffer)
+where
     T: Voxel,
     S: Shape<3, Coord = u32>,
     Merger: MergeStrategy<Voxel = T>,
@@ -99,42 +82,46 @@ pub fn greedy_quads_with_merge_strategy<T, S, Merger>(
     let extent = Extent::from_min_and_max(min, max);
 
     output.reset(voxels.len());
-    let GreedyQuadsBuffer {
-        visited,
-        quads: QuadBuffer { groups },
-    } = output;
+    let GreedyQuadsBuffer { visited, quads: QuadBuffer { groups } } = output;
 
     let interior = extent.padded(-1); // Avoid accessing out of bounds with a 3x3x3 kernel.
-    let interior =
-        Extent::from_min_and_shape(interior.minimum.as_uvec3(), interior.shape.as_uvec3());
+    let interior = Extent::from_min_and_shape(interior.minimum.as_uvec3(), interior.shape.as_uvec3());
 
     for (group, face) in groups.iter_mut().zip(faces.iter()) {
         greedy_quads_for_face::<_, _, Merger>(voxels, voxels_shape, interior, face, visited, group);
     }
 }
 
-fn greedy_quads_for_face<T, S, Merger>(
-    voxels: &[T],
-    voxels_shape: &S,
-    interior: Extent<UVec3>,
-    face: &OrientedBlockFace,
-    visited: &mut [bool],
-    quads: &mut Vec<UnorientedQuad>,
-) where
+fn get_face_index(visibility_offset: u32, start_stride: u32, voxels_shape: &dyn Shape<3, Coord = u32>) -> u8 {
+    let [x, y, z] = voxels_shape.delinearize(start_stride);
+    let [nx, ny, nz] = voxels_shape.delinearize(start_stride + visibility_offset);
+
+    if nx < x {
+        0
+    } else if ny < y {
+        1
+    } else if nz < z {
+        2
+    } else if nx > x {
+        3
+    } else if ny > y {
+        4
+    } else if nz > z {
+        5
+    } else {
+        0
+    }
+}
+
+fn greedy_quads_for_face<T, S, Merger>(voxels: &[T], voxels_shape: &S, interior: Extent<UVec3>, face: &OrientedBlockFace, visited: &mut [bool], quads: &mut Vec<UnorientedQuad>)
+where
     T: Voxel,
     S: Shape<3, Coord = u32>,
     Merger: MergeStrategy<Voxel = T>,
 {
     visited.fill(false);
 
-    let OrientedBlockFace {
-        n_sign,
-        permutation,
-        n,
-        u,
-        v,
-        ..
-    } = face;
+    let OrientedBlockFace { n_sign, permutation, n, u, v, .. } = face;
 
     let [n_axis, u_axis, v_axis] = permutation.axes();
     let i_n = n_axis.index();
@@ -157,12 +144,10 @@ fn greedy_quads_for_face<T, S, Merger>(
         u_stride,
         v_stride,
         // The offset to the voxel sharing this cube face.
-        visibility_offset: if *n_sign > 0 {
-            n_stride
-        } else {
-            0u32.wrapping_sub(n_stride)
-        },
+        visibility_offset: if *n_sign > 0 { n_stride } else { 0u32.wrapping_sub(n_stride) },
     };
+
+    let mut aos: HashMap<(u32, u8), [u8; 4]> = HashMap::new();
 
     for _ in 0..num_slices {
         let slice_ub = slice_extent.least_upper_bound().to_array();
@@ -173,15 +158,7 @@ fn greedy_quads_for_face<T, S, Merger>(
             let quad_min_array = quad_min.to_array();
             let quad_min_index = voxels_shape.linearize(quad_min_array);
             let quad_min_voxel = unsafe { voxels.get_unchecked(quad_min_index as usize) };
-            if unsafe {
-                !face_needs_mesh(
-                    quad_min_voxel,
-                    quad_min_index,
-                    face_strides.visibility_offset,
-                    voxels,
-                    visited,
-                )
-            } {
+            if unsafe { !face_needs_mesh(quad_min_voxel, quad_min_index, face_strides.visibility_offset, voxels, visited) } {
                 continue;
             }
             // We have at least one face that needs a mesh. We'll try to expand that face into the biggest quad we can find.
@@ -190,16 +167,7 @@ fn greedy_quads_for_face<T, S, Merger>(
             let max_width = u_ub - quad_min_array[i_u];
             let max_height = v_ub - quad_min_array[i_v];
 
-            let (quad_width, quad_height) = unsafe {
-                Merger::find_quad(
-                    quad_min_index,
-                    max_width,
-                    max_height,
-                    &face_strides,
-                    voxels,
-                    visited,
-                )
-            };
+            let (quad_width, quad_height) = unsafe { Merger::find_quad(quad_min_index, max_width, max_height, &face_strides, voxels, visited, voxels_shape, &mut aos) };
             debug_assert!(quad_width >= 1);
             debug_assert!(quad_width <= max_width);
             debug_assert!(quad_height >= 1);
@@ -216,6 +184,7 @@ fn greedy_quads_for_face<T, S, Merger>(
                 minimum: quad_min.to_array(),
                 width: quad_width,
                 height: quad_height,
+                ao: aos.get(&(quad_min_index, get_face_index(face_strides.visibility_offset, quad_min_index, voxels_shape))).unwrap().clone(),
             });
         }
 
@@ -226,13 +195,7 @@ fn greedy_quads_for_face<T, S, Merger>(
 
 /// Returns true iff the given `voxel` face needs to be meshed. This means that we haven't already meshed it, it is non-empty,
 /// and it's visible (not completely occluded by an adjacent voxel).
-pub(crate) unsafe fn face_needs_mesh<T>(
-    voxel: &T,
-    voxel_stride: u32,
-    visibility_offset: u32,
-    voxels: &[T],
-    visited: &[bool],
-) -> bool
+pub(crate) unsafe fn face_needs_mesh<T>(voxel: &T, voxel_stride: u32, visibility_offset: u32, voxels: &[T], visited: &[bool]) -> bool
 where
     T: Voxel,
 {
@@ -240,8 +203,7 @@ where
         return false;
     }
 
-    let adjacent_voxel =
-        voxels.get_unchecked(voxel_stride.wrapping_add(visibility_offset) as usize);
+    let adjacent_voxel = voxels.get_unchecked(voxel_stride.wrapping_add(visibility_offset) as usize);
 
     // TODO: If the face lies between two transparent voxels, we choose not to mesh it. We might need to extend the IsOpaque
     // trait with different levels of transparency to support this.
@@ -263,14 +225,7 @@ mod tests {
     fn panics_with_max_out_of_bounds_access() {
         let samples = [EMPTY; SampleShape::SIZE as usize];
         let mut buffer = GreedyQuadsBuffer::new(samples.len());
-        greedy_quads(
-            &samples,
-            &SampleShape {},
-            [0; 3],
-            [34, 33, 33],
-            &RIGHT_HANDED_Y_UP_CONFIG.faces,
-            &mut buffer,
-        );
+        greedy_quads(&samples, &SampleShape {}, [0; 3], [34, 33, 33], &RIGHT_HANDED_Y_UP_CONFIG.faces, &mut buffer);
     }
 
     #[test]
@@ -278,14 +233,7 @@ mod tests {
     fn panics_with_min_out_of_bounds_access() {
         let samples = [EMPTY; SampleShape::SIZE as usize];
         let mut buffer = GreedyQuadsBuffer::new(samples.len());
-        greedy_quads(
-            &samples,
-            &SampleShape {},
-            [0, 34, 0],
-            [33; 3],
-            &RIGHT_HANDED_Y_UP_CONFIG.faces,
-            &mut buffer,
-        );
+        greedy_quads(&samples, &SampleShape {}, [0, 34, 0], [33; 3], &RIGHT_HANDED_Y_UP_CONFIG.faces, &mut buffer);
     }
 
     type SampleShape = ConstShape3u32<34, 34, 34>;

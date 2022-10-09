@@ -80,7 +80,8 @@ pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
             };
 
             if face_needs_mesh {
-                output.groups[face_index].push(UnorientedUnitQuad { minimum: p_array });
+                // maybe i broke a test ? probably
+                //output.groups[face_index].push(UnorientedUnitQuad { minimum: p_array, ao:  });
             }
         }
     }
