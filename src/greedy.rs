@@ -92,27 +92,6 @@ where
     }
 }
 
-fn get_face_index(visibility_offset: u32, start_stride: u32, voxels_shape: &dyn Shape<3, Coord = u32>) -> u8 {
-    let [x, y, z] = voxels_shape.delinearize(start_stride);
-    let [nx, ny, nz] = voxels_shape.delinearize(start_stride + visibility_offset);
-
-    if nx < x {
-        0
-    } else if ny < y {
-        1
-    } else if nz < z {
-        2
-    } else if nx > x {
-        3
-    } else if ny > y {
-        4
-    } else if nz > z {
-        5
-    } else {
-        0
-    }
-}
-
 fn greedy_quads_for_face<T, S, Merger>(voxels: &[T], voxels_shape: &S, interior: Extent<UVec3>, face: &OrientedBlockFace, visited: &mut [bool], quads: &mut Vec<UnorientedQuad>)
 where
     T: Voxel,
@@ -139,12 +118,14 @@ where
     let n_stride = voxels_shape.linearize(n.to_array());
     let u_stride = voxels_shape.linearize(u.to_array());
     let v_stride = voxels_shape.linearize(v.to_array());
+    let visibility_offset = if *n_sign > 0 { n_stride } else { 0u32.wrapping_sub(n_stride) };
     let face_strides = FaceStrides {
         n_stride,
         u_stride,
         v_stride,
         // The offset to the voxel sharing this cube face.
-        visibility_offset: if *n_sign > 0 { n_stride } else { 0u32.wrapping_sub(n_stride) },
+        visibility_offset: visibility_offset,
+        face_index: face.permutation.axes()[0] as u8,
     };
 
     let mut aos: HashMap<(u32, u8), [u8; 4]> = HashMap::new();
@@ -184,7 +165,7 @@ where
                 minimum: quad_min.to_array(),
                 width: quad_width,
                 height: quad_height,
-                ao: aos.get(&(quad_min_index, get_face_index(face_strides.visibility_offset, quad_min_index, voxels_shape))).unwrap().clone(),
+                ao: aos.get(&(quad_min_index, face_strides.face_index)).unwrap().clone(),
             });
         }
 

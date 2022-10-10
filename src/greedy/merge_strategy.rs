@@ -51,6 +51,7 @@ pub struct FaceStrides {
     pub u_stride: u32,
     pub v_stride: u32,
     pub visibility_offset: u32,
+    pub face_index: u8,
 }
 
 pub struct VoxelMerger<T> {
@@ -90,6 +91,8 @@ where
             max_width,
             voxels_shape,
             aos,
+            min_index,
+            face_strides.face_index,
         );
 
         // Now see how tall we can make the quad in the V direction without changing the width.
@@ -107,6 +110,8 @@ where
                 quad_width,
                 voxels_shape,
                 aos,
+                min_index,
+                face_strides.face_index,
             );
             if row_width < quad_width {
                 break;
@@ -120,39 +125,11 @@ where
 }
 
 impl<T> VoxelMerger<T> {
-    fn get_face_index(visibility_offset: u32, start_stride: u32, voxels_shape: &dyn Shape<3, Coord = u32>) -> u8 {
-        let [x, y, z] = voxels_shape.delinearize(start_stride);
-        let [nx, ny, nz] = voxels_shape.delinearize(start_stride + visibility_offset);
-
-        if nx < x {
-            0
-        } else if ny < y {
-            1
-        } else if nz < z {
-            2
-        } else if nx > x {
-            3
-        } else if ny > y {
-            4
-        } else if nz > z {
-            5
-        } else {
-            0
-        }
-    }
-
-    //[-1, 0, 0], // left
-    //[0, -1, 0], // bottom
-    //[0, 0, -1], // back
-    //[1, 0, 0],  // right
-    //[0, 1, 0],  // top
-    //[0, 0, 1],  // front
-
     fn calculate_ao(voxels: &[T], visibility_offset: u32, stride: u32, current_face: u8, voxels_shape: &dyn Shape<3, Coord = u32>) -> [u8; 4]
     where
         T: MergeVoxel,
     {
-        let [x, y, z] = voxels_shape.delinearize(stride + visibility_offset);
+        let [x, y, z] = voxels_shape.delinearize(stride.wrapping_add(visibility_offset));
 
         let neighbours: [&T; 8];
 
@@ -246,16 +223,17 @@ impl<T> VoxelMerger<T> {
         max_width: u32,
         voxels_shape: &dyn Shape<3, Coord = u32>,
         aos: &mut HashMap<(u32, u8), [u8; 4]>,
+        quad_start_stride: u32,
+        current_face: u8
     ) -> u32
     where
         T: MergeVoxel,
     {
         let mut quad_width = 0;
         let mut row_stride = start_stride;
-        let current_face = Self::get_face_index(visibility_offset, start_stride, voxels_shape);
         while quad_width < max_width {
             let voxel = voxels.get_unchecked(row_stride as usize);
-            let neighbour = voxels.get_unchecked((row_stride + visibility_offset) as usize);
+            let neighbour = voxels.get_unchecked((row_stride.wrapping_add(visibility_offset)) as usize);
 
             if !face_needs_mesh(voxel, row_stride, visibility_offset, voxels, visited) {
                 break;
@@ -265,14 +243,14 @@ impl<T> VoxelMerger<T> {
                 let ao = Self::calculate_ao(voxels, visibility_offset, row_stride, current_face, voxels_shape);
                 aos.insert((row_stride, current_face), ao);
             }
-            if !aos.contains_key(&(start_stride, current_face)) {
-                let ao = Self::calculate_ao(voxels, visibility_offset, start_stride, current_face, voxels_shape);
-                aos.insert((start_stride, current_face), ao);
+            if !aos.contains_key(&(quad_start_stride, current_face)) {
+                let ao = Self::calculate_ao(voxels, visibility_offset, quad_start_stride, current_face, voxels_shape);
+                aos.insert((quad_start_stride, current_face), ao);
             }
 
             if !voxel.merge_value().eq(quad_merge_voxel_value)
                 || !neighbour.merge_value_facing_neighbour().eq(quad_merge_voxel_value_facing_neighbour)
-                || !aos.get(&(row_stride, current_face)).unwrap().eq(aos.get(&(start_stride, current_face)).unwrap())
+                || !(aos.get(&(row_stride, current_face)).unwrap().eq(aos.get(&(quad_start_stride, current_face)).unwrap()))
             {
                 // Voxel needs to be non-empty and match the quad merge value.
                 break;
