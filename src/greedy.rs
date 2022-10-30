@@ -2,7 +2,9 @@ mod merge_strategy;
 
 pub use merge_strategy::*;
 
-use crate::{bounds::assert_in_bounds, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel, VoxelVisibility};
+use crate::{
+    bounds::assert_in_bounds, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel, VoxelVisibility,
+};
 
 use ilattice::glam::UVec3;
 use ilattice::prelude::Extent;

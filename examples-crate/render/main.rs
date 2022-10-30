@@ -1,8 +1,8 @@
 use block_mesh::ilattice::glam::Vec3A;
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
-    greedy_quads, visible_block_faces, GreedyQuadsBuffer, MergeVoxel, UnitQuadBuffer, Voxel, VoxelVisibility,
-    RIGHT_HANDED_Y_UP_CONFIG,
+    greedy_quads, visible_block_faces, GreedyQuadsBuffer, MergeVoxel, UnitQuadBuffer, Voxel,
+    VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
 };
 
 use bevy::{
@@ -212,8 +212,13 @@ impl Voxel for BoolVoxel {
 
 impl MergeVoxel for BoolVoxel {
     type MergeValue = Self;
+    type MergeValueFacingNeighbour = Self;
 
     fn merge_value(&self) -> Self::MergeValue {
+        *self
+    }
+
+    fn merge_value_facing_neighbour(&self) -> Self::MergeValueFacingNeighbour {
         *self
     }
 }
