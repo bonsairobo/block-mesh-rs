@@ -3,7 +3,9 @@ use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::{AddressMode, PrimitiveTopology, SamplerDescriptor};
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
-use block_mesh::{greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG};
+use block_mesh::{
+    greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
+};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum AppState {
@@ -51,8 +53,13 @@ struct BoolVoxel(bool);
 
 impl MergeVoxel for BoolVoxel {
     type MergeValue = bool;
+    type MergeValueFacingNeighbour = bool;
 
     fn merge_value(&self) -> Self::MergeValue {
+        self.0
+    }
+
+    fn merge_value_facing_neighbour(&self) -> Self::MergeValueFacingNeighbour {
         self.0
     }
 }
