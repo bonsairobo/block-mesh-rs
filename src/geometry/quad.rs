@@ -12,6 +12,8 @@ pub struct UnorientedQuad {
     pub width: u32,
     /// Height of the quad.
     pub height: u32,
+    // Ambient Occlusion of the 4 corners of the quad
+    pub ao: [u8; 4],
 }
 
 impl From<UnorientedUnitQuad> for UnorientedQuad {
@@ -21,6 +23,7 @@ impl From<UnorientedUnitQuad> for UnorientedQuad {
             minimum: unit.minimum,
             width: 1,
             height: 1,
+            ao: unit.ao,
         }
     }
 }
@@ -32,4 +35,6 @@ impl From<UnorientedUnitQuad> for UnorientedQuad {
 pub struct UnorientedUnitQuad {
     /// The minimum voxel in the quad.
     pub minimum: [u32; 3],
+    // Ambient Occlusion of the 4 corners of the quad
+    pub ao: [u8; 4],
 }

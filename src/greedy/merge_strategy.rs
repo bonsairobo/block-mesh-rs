@@ -1,5 +1,9 @@
+use std::collections::HashMap;
+
+use ndshape::Shape;
+
 use crate::greedy::face_needs_mesh;
-use crate::Voxel;
+use crate::{Voxel, VoxelVisibility};
 
 use super::MergeVoxel;
 
@@ -35,6 +39,8 @@ pub trait MergeStrategy {
         face_strides: &FaceStrides,
         voxels: &[Self::Voxel],
         visited: &[bool],
+        voxels_shape: &dyn Shape<3, Coord = u32>,
+        aos: &mut HashMap<(u32, u8), [u8; 4]>,
     ) -> (u32, u32)
     where
         Self::Voxel: Voxel;
@@ -45,6 +51,7 @@ pub struct FaceStrides {
     pub u_stride: u32,
     pub v_stride: u32,
     pub visibility_offset: u32,
+    pub face_index: u8,
 }
 
 pub struct VoxelMerger<T> {
@@ -64,12 +71,12 @@ where
         face_strides: &FaceStrides,
         voxels: &[T],
         visited: &[bool],
+        voxels_shape: &dyn Shape<3, Coord = u32>,
+        aos: &mut HashMap<(u32, u8), [u8; 4]>,
     ) -> (u32, u32) {
         // Greedily search for the biggest visible quad where all merge values are the same.
         let quad_value = voxels.get_unchecked(min_index as usize).merge_value();
-        let quad_neighbour_value = voxels
-            .get_unchecked((min_index + face_strides.visibility_offset) as usize)
-            .merge_value_facing_neighbour();
+        let quad_neighbour_value = voxels.get_unchecked((min_index + face_strides.visibility_offset) as usize).merge_value_facing_neighbour();
 
         // Start by finding the widest quad in the U direction.
         let mut row_start_stride = min_index;
@@ -82,6 +89,10 @@ where
             row_start_stride,
             face_strides.u_stride,
             max_width,
+            voxels_shape,
+            aos,
+            min_index,
+            face_strides.face_index,
         );
 
         // Now see how tall we can make the quad in the V direction without changing the width.
@@ -97,6 +108,10 @@ where
                 row_start_stride,
                 face_strides.u_stride,
                 quad_width,
+                voxels_shape,
+                aos,
+                min_index,
+                face_strides.face_index,
             );
             if row_width < quad_width {
                 break;
@@ -110,6 +125,93 @@ where
 }
 
 impl<T> VoxelMerger<T> {
+    fn calculate_ao(voxels: &[T], visibility_offset: u32, stride: u32, current_face: u8, voxels_shape: &dyn Shape<3, Coord = u32>) -> [u8; 4]
+    where
+        T: MergeVoxel,
+    {
+        let [x, y, z] = voxels_shape.delinearize(stride.wrapping_add(visibility_offset));
+
+        let neighbours: [&T; 8];
+
+        if current_face == 0 || current_face == 3 {
+            // left or right
+            neighbours = [
+                &voxels[voxels_shape.linearize([x, y, z + 1]) as usize],
+                &voxels[voxels_shape.linearize([x, y - 1, z + 1]) as usize],
+                &voxels[voxels_shape.linearize([x, y - 1, z]) as usize],
+                &voxels[voxels_shape.linearize([x, y - 1, z - 1]) as usize],
+                &voxels[voxels_shape.linearize([x, y, z - 1]) as usize],
+                &voxels[voxels_shape.linearize([x, y + 1, z - 1]) as usize],
+                &voxels[voxels_shape.linearize([x, y + 1, z]) as usize],
+                &voxels[voxels_shape.linearize([x, y + 1, z + 1]) as usize],
+            ];
+        } else if current_face == 1 || current_face == 4 {
+            // bottom or top
+            neighbours = [
+                &voxels[voxels_shape.linearize([x, y, z + 1]) as usize],
+                &voxels[voxels_shape.linearize([x - 1, y, z + 1]) as usize],
+                &voxels[voxels_shape.linearize([x - 1, y, z]) as usize],
+                &voxels[voxels_shape.linearize([x - 1, y, z - 1]) as usize],
+                &voxels[voxels_shape.linearize([x, y, z - 1]) as usize],
+                &voxels[voxels_shape.linearize([x + 1, y, z - 1]) as usize],
+                &voxels[voxels_shape.linearize([x + 1, y, z]) as usize],
+                &voxels[voxels_shape.linearize([x + 1, y, z + 1]) as usize],
+            ];
+        } else {
+            // back or front
+            neighbours = [
+                &voxels[voxels_shape.linearize([x + 1, y, z]) as usize],
+                &voxels[voxels_shape.linearize([x + 1, y - 1, z]) as usize],
+                &voxels[voxels_shape.linearize([x, y - 1, z]) as usize],
+                &voxels[voxels_shape.linearize([x - 1, y - 1, z]) as usize],
+                &voxels[voxels_shape.linearize([x - 1, y, z]) as usize],
+                &voxels[voxels_shape.linearize([x - 1, y + 1, z]) as usize],
+                &voxels[voxels_shape.linearize([x, y + 1, z]) as usize],
+                &voxels[voxels_shape.linearize([x + 1, y + 1, z]) as usize],
+            ];
+        }
+
+        let mut ao = [0; 4];
+        if neighbours[0].get_visibility() == VoxelVisibility::Opaque && neighbours[2].get_visibility() == VoxelVisibility::Opaque {
+            ao[1] = 0;
+        } else if neighbours[1].get_visibility() == VoxelVisibility::Opaque && (neighbours[0].get_visibility() == VoxelVisibility::Opaque || neighbours[2].get_visibility() == VoxelVisibility::Opaque) {
+            ao[1] = 1;
+        } else if neighbours[0].get_visibility() == VoxelVisibility::Opaque || neighbours[1].get_visibility() == VoxelVisibility::Opaque || neighbours[2].get_visibility() == VoxelVisibility::Opaque {
+            ao[1] = 2;
+        } else {
+            ao[1] = 3;
+        }
+        if neighbours[2].get_visibility() == VoxelVisibility::Opaque && neighbours[4].get_visibility() == VoxelVisibility::Opaque {
+            ao[0] = 0;
+        } else if neighbours[3].get_visibility() == VoxelVisibility::Opaque && (neighbours[2].get_visibility() == VoxelVisibility::Opaque || neighbours[4].get_visibility() == VoxelVisibility::Opaque) {
+            ao[0] = 1;
+        } else if neighbours[2].get_visibility() == VoxelVisibility::Opaque || neighbours[3].get_visibility() == VoxelVisibility::Opaque || neighbours[4].get_visibility() == VoxelVisibility::Opaque {
+            ao[0] = 2;
+        } else {
+            ao[0] = 3;
+        }
+        if neighbours[4].get_visibility() == VoxelVisibility::Opaque && neighbours[6].get_visibility() == VoxelVisibility::Opaque {
+            ao[2] = 0;
+        } else if neighbours[5].get_visibility() == VoxelVisibility::Opaque && (neighbours[4].get_visibility() == VoxelVisibility::Opaque || neighbours[6].get_visibility() == VoxelVisibility::Opaque) {
+            ao[2] = 1;
+        } else if neighbours[4].get_visibility() == VoxelVisibility::Opaque || neighbours[5].get_visibility() == VoxelVisibility::Opaque || neighbours[6].get_visibility() == VoxelVisibility::Opaque {
+            ao[2] = 2;
+        } else {
+            ao[2] = 3;
+        }
+        if neighbours[6].get_visibility() == VoxelVisibility::Opaque && neighbours[0].get_visibility() == VoxelVisibility::Opaque {
+            ao[3] = 0;
+        } else if neighbours[7].get_visibility() == VoxelVisibility::Opaque && (neighbours[6].get_visibility() == VoxelVisibility::Opaque || neighbours[0].get_visibility() == VoxelVisibility::Opaque) {
+            ao[3] = 1;
+        } else if neighbours[6].get_visibility() == VoxelVisibility::Opaque || neighbours[7].get_visibility() == VoxelVisibility::Opaque || neighbours[0].get_visibility() == VoxelVisibility::Opaque {
+            ao[3] = 2;
+        } else {
+            ao[3] = 3;
+        }
+
+        ao
+    }
+
     unsafe fn get_row_width(
         voxels: &[T],
         visited: &[bool],
@@ -119,6 +221,10 @@ impl<T> VoxelMerger<T> {
         start_stride: u32,
         delta_stride: u32,
         max_width: u32,
+        voxels_shape: &dyn Shape<3, Coord = u32>,
+        aos: &mut HashMap<(u32, u8), [u8; 4]>,
+        quad_start_stride: u32,
+        current_face: u8
     ) -> u32
     where
         T: MergeVoxel,
@@ -127,16 +233,24 @@ impl<T> VoxelMerger<T> {
         let mut row_stride = start_stride;
         while quad_width < max_width {
             let voxel = voxels.get_unchecked(row_stride as usize);
-            let neighbour = voxels.get_unchecked((row_stride + visibility_offset) as usize);
+            let neighbour = voxels.get_unchecked((row_stride.wrapping_add(visibility_offset)) as usize);
 
             if !face_needs_mesh(voxel, row_stride, visibility_offset, voxels, visited) {
                 break;
             }
 
+            if !aos.contains_key(&(row_stride, current_face)) {
+                let ao = Self::calculate_ao(voxels, visibility_offset, row_stride, current_face, voxels_shape);
+                aos.insert((row_stride, current_face), ao);
+            }
+            if !aos.contains_key(&(quad_start_stride, current_face)) {
+                let ao = Self::calculate_ao(voxels, visibility_offset, quad_start_stride, current_face, voxels_shape);
+                aos.insert((quad_start_stride, current_face), ao);
+            }
+
             if !voxel.merge_value().eq(quad_merge_voxel_value)
-                || !neighbour
-                    .merge_value_facing_neighbour()
-                    .eq(quad_merge_voxel_value_facing_neighbour)
+                || !neighbour.merge_value_facing_neighbour().eq(quad_merge_voxel_value_facing_neighbour)
+                || !(aos.get(&(row_stride, current_face)).unwrap().eq(aos.get(&(quad_start_stride, current_face)).unwrap()))
             {
                 // Voxel needs to be non-empty and match the quad merge value.
                 break;
