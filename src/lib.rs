@@ -38,8 +38,13 @@
 //!
 //! impl MergeVoxel for BoolVoxel {
 //!     type MergeValue = Self;
+//!     type MergeValueFacingNeighbour = Self;
 //!
 //!     fn merge_value(&self) -> Self::MergeValue {
+//!         *self
+//!     }
+//!
+//!     fn merge_value_facing_neighbour(&self) -> Self::MergeValueFacingNeighbour {
 //!         *self
 //!     }
 //! }
