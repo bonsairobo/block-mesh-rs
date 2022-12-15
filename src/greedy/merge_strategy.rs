@@ -68,7 +68,7 @@ where
         // Greedily search for the biggest visible quad where all merge values are the same.
         let quad_value = voxels.get_unchecked(min_index as usize).merge_value();
         let quad_neighbour_value = voxels
-            .get_unchecked((min_index + face_strides.visibility_offset) as usize)
+            .get_unchecked(min_index.wrapping_add(face_strides.visibility_offset) as usize)
             .merge_value_facing_neighbour();
 
         // Start by finding the widest quad in the U direction.
@@ -127,7 +127,8 @@ impl<T> VoxelMerger<T> {
         let mut row_stride = start_stride;
         while quad_width < max_width {
             let voxel = voxels.get_unchecked(row_stride as usize);
-            let neighbour = voxels.get_unchecked((row_stride + visibility_offset) as usize);
+            let neighbour =
+                voxels.get_unchecked(row_stride.wrapping_add(visibility_offset) as usize);
 
             if !face_needs_mesh(voxel, row_stride, visibility_offset, voxels, visited) {
                 break;
