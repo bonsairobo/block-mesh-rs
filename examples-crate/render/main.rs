@@ -1,3 +1,4 @@
+use bevy::render::settings::WgpuSettings;
 use block_mesh::ilattice::glam::Vec3A;
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
@@ -10,21 +11,20 @@ use bevy::{
     prelude::*,
     render::{
         mesh::{Indices, VertexAttributeValues},
-        options::WgpuOptions,
         render_resource::{PrimitiveTopology, WgpuFeatures},
     },
 };
 
 fn main() {
     App::new()
-        .insert_resource(WgpuOptions {
+        .insert_resource(WgpuSettings {
             features: WgpuFeatures::POLYGON_MODE_LINE,
             ..Default::default()
         })
         .insert_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
         .add_plugin(WireframePlugin)
-        .add_startup_system(setup.system())
+        .add_startup_system(setup)
         .run();
 }
 
@@ -105,13 +105,16 @@ fn generate_simple_mesh(
     }
 
     let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    render_mesh.set_attribute(
-        "Vertex_Position",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::Float32x3(positions),
     );
-    render_mesh.set_attribute("Vertex_Normal", VertexAttributeValues::Float32x3(normals));
-    render_mesh.set_attribute(
-        "Vertex_Uv",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        VertexAttributeValues::Float32x3(normals),
+    );
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_UV_0,
         VertexAttributeValues::Float32x2(vec![[0.0; 2]; num_vertices]),
     );
     render_mesh.set_indices(Some(Indices::U32(indices.clone())));
@@ -156,13 +159,16 @@ fn generate_greedy_mesh(
     }
 
     let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    render_mesh.set_attribute(
-        "Vertex_Position",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::Float32x3(positions),
     );
-    render_mesh.set_attribute("Vertex_Normal", VertexAttributeValues::Float32x3(normals));
-    render_mesh.set_attribute(
-        "Vertex_Uv",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        VertexAttributeValues::Float32x3(normals),
+    );
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_UV_0,
         VertexAttributeValues::Float32x2(vec![[0.0; 2]; num_vertices]),
     );
     render_mesh.set_indices(Some(Indices::U32(indices.clone())));

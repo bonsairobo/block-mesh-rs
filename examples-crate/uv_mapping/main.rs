@@ -142,9 +142,9 @@ fn setup(
         }
     }
 
-    render_mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-    render_mesh.set_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    render_mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, tex_coords);
+    render_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    render_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    render_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, tex_coords);
     render_mesh.set_indices(Some(Indices::U32(indices)));
 
     commands.spawn_bundle(PbrBundle {
@@ -193,7 +193,7 @@ fn camera_rotation_system(
     let x = radius * t.cos();
     let z = radius * t.sin();
     let eye = Vec3::new(x, height, z);
-    let new_transform = Mat4::face_toward(eye, target, Vec3::Y);
+    let new_transform = Mat4::look_at_rh(eye, target, Vec3::Y);
 
     let mut cam_tfm = transforms.get_mut(state.camera).unwrap();
     *cam_tfm = Transform::from_matrix(new_transform);
