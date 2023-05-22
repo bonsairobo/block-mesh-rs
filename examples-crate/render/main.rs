@@ -1,3 +1,5 @@
+use bevy::render::settings::WgpuSettings;
+use bevy::render::RenderPlugin;
 use block_mesh::ilattice::glam::Vec3A;
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
@@ -10,21 +12,21 @@ use bevy::{
     prelude::*,
     render::{
         mesh::{Indices, VertexAttributeValues},
-        options::WgpuOptions,
         render_resource::{PrimitiveTopology, WgpuFeatures},
     },
 };
 
 fn main() {
     App::new()
-        .insert_resource(WgpuOptions {
-            features: WgpuFeatures::POLYGON_MODE_LINE,
-            ..Default::default()
-        })
-        .insert_resource(Msaa { samples: 4 })
-        .add_plugins(DefaultPlugins)
+        .insert_resource(Msaa::Sample4)
+        .add_plugins(DefaultPlugins.set(RenderPlugin {
+            wgpu_settings: WgpuSettings {
+                features: WgpuFeatures::POLYGON_MODE_LINE,
+                ..Default::default()
+            },
+        }))
         .add_plugin(WireframePlugin)
-        .add_startup_system(setup.system())
+        .add_startup_system(setup)
         .run();
 }
 
@@ -36,7 +38,7 @@ fn setup(
 ) {
     wireframe_config.global = true;
 
-    commands.spawn_bundle(PointLightBundle {
+    commands.spawn(PointLightBundle {
         transform: Transform::from_translation(Vec3::new(25.0, 25.0, 25.0)),
         point_light: PointLight {
             range: 200.0,
@@ -45,7 +47,7 @@ fn setup(
         },
         ..Default::default()
     });
-    commands.spawn_bundle(PerspectiveCameraBundle {
+    commands.spawn(Camera3dBundle {
         transform: Transform::from_translation(Vec3::new(50.0, 15.0, 50.0))
             .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         ..Default::default()
@@ -105,13 +107,16 @@ fn generate_simple_mesh(
     }
 
     let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    render_mesh.set_attribute(
-        "Vertex_Position",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::Float32x3(positions),
     );
-    render_mesh.set_attribute("Vertex_Normal", VertexAttributeValues::Float32x3(normals));
-    render_mesh.set_attribute(
-        "Vertex_Uv",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        VertexAttributeValues::Float32x3(normals),
+    );
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_UV_0,
         VertexAttributeValues::Float32x2(vec![[0.0; 2]; num_vertices]),
     );
     render_mesh.set_indices(Some(Indices::U32(indices.clone())));
@@ -156,13 +161,16 @@ fn generate_greedy_mesh(
     }
 
     let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    render_mesh.set_attribute(
-        "Vertex_Position",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::Float32x3(positions),
     );
-    render_mesh.set_attribute("Vertex_Normal", VertexAttributeValues::Float32x3(normals));
-    render_mesh.set_attribute(
-        "Vertex_Uv",
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_NORMAL,
+        VertexAttributeValues::Float32x3(normals),
+    );
+    render_mesh.insert_attribute(
+        Mesh::ATTRIBUTE_UV_0,
         VertexAttributeValues::Float32x2(vec![[0.0; 2]; num_vertices]),
     );
     render_mesh.set_indices(Some(Indices::U32(indices.clone())));
@@ -179,7 +187,7 @@ fn spawn_pbr(
     let mut material = StandardMaterial::from(Color::rgb(0.0, 0.0, 0.0));
     material.perceptual_roughness = 0.9;
 
-    commands.spawn_bundle(PbrBundle {
+    commands.spawn(PbrBundle {
         mesh,
         material: materials.add(material),
         transform,
