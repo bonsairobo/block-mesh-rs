@@ -16,6 +16,7 @@ enum AppState {
 
 const UV_SCALE: f32 = 1.0 / 16.0;
 
+#[derive(Resource)]
 struct Loading(Handle<Image>);
 
 fn main() {
@@ -148,14 +149,14 @@ fn setup(
     render_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, tex_coords);
     render_mesh.set_indices(Some(Indices::U32(indices)));
 
-    commands.spawn_bundle(PbrBundle {
+    commands.spawn(PbrBundle {
         mesh: meshes.add(render_mesh),
         material: materials.add(texture_handle.0.clone().into()),
         transform: Transform::from_translation(Vec3::splat(-10.0)),
         ..Default::default()
     });
 
-    commands.spawn_bundle(PointLightBundle {
+    commands.spawn(PointLightBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 50.0, 50.0)),
         point_light: PointLight {
             range: 200.0,
@@ -164,11 +165,12 @@ fn setup(
         },
         ..Default::default()
     });
-    let camera = commands.spawn_bundle(Camera3dBundle::default()).id();
+    let camera = commands.spawn(Camera3dBundle::default()).id();
 
     commands.insert_resource(CameraRotationState::new(camera));
 }
 
+#[derive(Resource)]
 struct CameraRotationState {
     camera: Entity,
 }
@@ -184,7 +186,7 @@ fn camera_rotation_system(
     time: Res<Time>,
     mut transforms: Query<&mut Transform>,
 ) {
-    let t = 0.3 * time.seconds_since_startup() as f32;
+    let t = 0.3 * time.elapsed_seconds();
 
     let target = Vec3::new(0.0, 0.0, 0.0);
     let height = 30.0 * (2.0 * t).sin();

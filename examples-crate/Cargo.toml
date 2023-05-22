@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.8.1", features = ["bevy_winit", "render", "png", "x11"] }
+bevy = { version = "0.9.1", features = ["bevy_winit", "render", "png", "x11"] }
 
 [dependencies.block-mesh]
 path = ".."

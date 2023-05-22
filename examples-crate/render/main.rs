@@ -36,7 +36,7 @@ fn setup(
 ) {
     wireframe_config.global = true;
 
-    commands.spawn_bundle(PointLightBundle {
+    commands.spawn(PointLightBundle {
         transform: Transform::from_translation(Vec3::new(25.0, 25.0, 25.0)),
         point_light: PointLight {
             range: 200.0,
@@ -45,7 +45,7 @@ fn setup(
         },
         ..Default::default()
     });
-    commands.spawn_bundle(Camera3dBundle {
+    commands.spawn(Camera3dBundle {
         transform: Transform::from_translation(Vec3::new(50.0, 15.0, 50.0))
             .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Y),
         ..Default::default()
@@ -185,7 +185,7 @@ fn spawn_pbr(
     let mut material = StandardMaterial::from(Color::rgb(0.0, 0.0, 0.0));
     material.perceptual_roughness = 0.9;
 
-    commands.spawn_bundle(PbrBundle {
+    commands.spawn(PbrBundle {
         mesh,
         material: materials.add(material),
         transform,
