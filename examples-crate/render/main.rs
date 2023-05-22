@@ -1,4 +1,5 @@
 use bevy::render::settings::WgpuSettings;
+use bevy::render::RenderPlugin;
 use block_mesh::ilattice::glam::Vec3A;
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
@@ -17,12 +18,13 @@ use bevy::{
 
 fn main() {
     App::new()
-        .insert_resource(WgpuSettings {
-            features: WgpuFeatures::POLYGON_MODE_LINE,
-            ..Default::default()
-        })
-        .insert_resource(Msaa { samples: 4 })
-        .add_plugins(DefaultPlugins)
+        .insert_resource(Msaa::Sample4)
+        .add_plugins(DefaultPlugins.set(RenderPlugin {
+            wgpu_settings: WgpuSettings {
+                features: WgpuFeatures::POLYGON_MODE_LINE,
+                ..Default::default()
+            },
+        }))
         .add_plugin(WireframePlugin)
         .add_startup_system(setup)
         .run();

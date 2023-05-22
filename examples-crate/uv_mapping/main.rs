@@ -8,10 +8,19 @@ use block_mesh::{
     greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
 };
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum AppState {
+    #[default]
     Loading,
     Run,
+}
+
+impl States for AppState {
+    type Iter = std::array::IntoIter<AppState, 2>;
+
+    fn variants() -> Self::Iter {
+        [Self::Loading, Self::Run].into_iter()
+    }
 }
 
 const UV_SCALE: f32 = 1.0 / 16.0;
@@ -22,12 +31,11 @@ struct Loading(Handle<Image>);
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .insert_resource(State::new(AppState::Loading))
-        .add_state(AppState::Loading)
-        .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_assets))
-        .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_loaded))
-        .add_system_set(SystemSet::on_enter(AppState::Run).with_system(setup))
-        .add_system_set(SystemSet::on_update(AppState::Run).with_system(camera_rotation_system))
+        .add_state::<AppState>()
+        .add_system(load_assets.in_schedule(OnEnter(AppState::Loading)))
+        .add_system(check_loaded.in_set(OnUpdate(AppState::Loading)))
+        .add_system(setup.in_schedule(OnEnter(AppState::Run)))
+        .add_system(camera_rotation_system.in_set(OnUpdate(AppState::Run)))
         .run();
 }
 
@@ -39,13 +47,13 @@ fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 /// Make sure that our texture is loaded so we can change some settings on it later
 fn check_loaded(
-    mut state: ResMut<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
     handle: Res<Loading>,
     asset_server: Res<AssetServer>,
 ) {
     debug!("check loaded");
     if let LoadState::Loaded = asset_server.get_load_state(&handle.0) {
-        state.set(AppState::Run).unwrap();
+        next_state.set(AppState::Run);
     }
 }
 
