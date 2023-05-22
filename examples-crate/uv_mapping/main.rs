@@ -2,6 +2,7 @@ use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::{AddressMode, PrimitiveTopology, SamplerDescriptor};
+use bevy::render::texture::ImageSampler;
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
     greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
@@ -85,11 +86,11 @@ fn setup(
     let mut texture = textures.get_mut(&texture_handle.0).unwrap();
 
     // Set the texture to tile over the entire quad
-    texture.sampler_descriptor = SamplerDescriptor {
+    texture.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
         address_mode_u: AddressMode::Repeat,
         address_mode_v: AddressMode::Repeat,
         ..Default::default()
-    };
+    });
 
     type SampleShape = ConstShape3u32<22, 22, 22>;
 
@@ -163,9 +164,7 @@ fn setup(
         },
         ..Default::default()
     });
-    let camera = commands
-        .spawn_bundle(PerspectiveCameraBundle::default())
-        .id();
+    let camera = commands.spawn_bundle(Camera3dBundle::default()).id();
 
     commands.insert_resource(CameraRotationState::new(camera));
 }
