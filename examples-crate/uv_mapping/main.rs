@@ -2,30 +2,35 @@ use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::{AddressMode, PrimitiveTopology, SamplerDescriptor};
+use bevy::render::texture::ImageSampler;
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
     greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
 };
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, Eq, Hash, PartialEq, States)]
 enum AppState {
+    #[default]
     Loading,
     Run,
 }
 
 const UV_SCALE: f32 = 1.0 / 16.0;
 
+#[derive(Resource)]
 struct Loading(Handle<Image>);
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .insert_resource(State::new(AppState::Loading))
-        .add_state(AppState::Loading)
-        .add_system_set(SystemSet::on_enter(AppState::Loading).with_system(load_assets))
-        .add_system_set(SystemSet::on_update(AppState::Loading).with_system(check_loaded))
-        .add_system_set(SystemSet::on_enter(AppState::Run).with_system(setup))
-        .add_system_set(SystemSet::on_update(AppState::Run).with_system(camera_rotation_system))
+        .add_state::<AppState>()
+        .add_systems(OnEnter(AppState::Loading), load_assets)
+        .add_systems(Update, check_loaded.run_if(in_state(AppState::Loading)))
+        .add_systems(OnEnter(AppState::Run), setup)
+        .add_systems(
+            Update,
+            camera_rotation_system.run_if(in_state(AppState::Run)),
+        )
         .run();
 }
 
@@ -37,13 +42,13 @@ fn load_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 /// Make sure that our texture is loaded so we can change some settings on it later
 fn check_loaded(
-    mut state: ResMut<State<AppState>>,
+    mut next_state: ResMut<NextState<AppState>>,
     handle: Res<Loading>,
     asset_server: Res<AssetServer>,
 ) {
     debug!("check loaded");
     if let LoadState::Loaded = asset_server.get_load_state(&handle.0) {
-        state.set(AppState::Run).unwrap();
+        next_state.set(AppState::Run);
     }
 }
 
@@ -82,14 +87,14 @@ fn setup(
     mut textures: ResMut<Assets<Image>>,
 ) {
     debug!("setup");
-    let mut texture = textures.get_mut(&texture_handle.0).unwrap();
+    let texture = textures.get_mut(&texture_handle.0).unwrap();
 
     // Set the texture to tile over the entire quad
-    texture.sampler_descriptor = SamplerDescriptor {
+    texture.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
         address_mode_u: AddressMode::Repeat,
         address_mode_v: AddressMode::Repeat,
         ..Default::default()
-    };
+    });
 
     type SampleShape = ConstShape3u32<22, 22, 22>;
 
@@ -142,19 +147,19 @@ fn setup(
         }
     }
 
-    render_mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-    render_mesh.set_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    render_mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, tex_coords);
+    render_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    render_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    render_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, tex_coords);
     render_mesh.set_indices(Some(Indices::U32(indices)));
 
-    commands.spawn_bundle(PbrBundle {
+    commands.spawn(PbrBundle {
         mesh: meshes.add(render_mesh),
         material: materials.add(texture_handle.0.clone().into()),
         transform: Transform::from_translation(Vec3::splat(-10.0)),
         ..Default::default()
     });
 
-    commands.spawn_bundle(PointLightBundle {
+    commands.spawn(PointLightBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 50.0, 50.0)),
         point_light: PointLight {
             range: 200.0,
@@ -163,13 +168,12 @@ fn setup(
         },
         ..Default::default()
     });
-    let camera = commands
-        .spawn_bundle(PerspectiveCameraBundle::default())
-        .id();
+    let camera = commands.spawn(Camera3dBundle::default()).id();
 
     commands.insert_resource(CameraRotationState::new(camera));
 }
 
+#[derive(Resource)]
 struct CameraRotationState {
     camera: Entity,
 }
@@ -185,7 +189,7 @@ fn camera_rotation_system(
     time: Res<Time>,
     mut transforms: Query<&mut Transform>,
 ) {
-    let t = 0.3 * time.seconds_since_startup() as f32;
+    let t = 0.3 * time.elapsed_seconds();
 
     let target = Vec3::new(0.0, 0.0, 0.0);
     let height = 30.0 * (2.0 * t).sin();
@@ -193,7 +197,7 @@ fn camera_rotation_system(
     let x = radius * t.cos();
     let z = radius * t.sin();
     let eye = Vec3::new(x, height, z);
-    let new_transform = Mat4::face_toward(eye, target, Vec3::Y);
+    let new_transform = Mat4::look_at_rh(eye, target, Vec3::Y);
 
     let mut cam_tfm = transforms.get_mut(state.camera).unwrap();
     *cam_tfm = Transform::from_matrix(new_transform);
