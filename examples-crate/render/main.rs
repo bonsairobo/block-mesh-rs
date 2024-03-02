@@ -1,6 +1,8 @@
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::render::mesh::{Indices, VertexAttributeValues};
+use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::PrimitiveTopology;
+use bevy::render::settings::RenderCreation;
 use block_mesh::ilattice::glam::Vec3A;
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
@@ -22,10 +24,11 @@ fn main() {
         .insert_resource(Msaa::Sample4)
         .add_plugins((
             DefaultPlugins.set(RenderPlugin {
-                wgpu_settings: WgpuSettings {
+                render_creation: RenderCreation::Automatic(WgpuSettings {
                     features: WgpuFeatures::POLYGON_MODE_LINE,
                     ..Default::default()
-                },
+                }),
+                ..default()
             }),
             WireframePlugin,
         ))
@@ -45,7 +48,7 @@ fn setup(
         transform: Transform::from_translation(Vec3::new(25.0, 25.0, 25.0)),
         point_light: PointLight {
             range: 200.0,
-            intensity: 8000.0,
+            //intensity: 8000.0,
             ..Default::default()
         },
         ..Default::default()
@@ -71,6 +74,11 @@ fn setup(
         greedy_sphere_mesh,
         Transform::from_translation(Vec3::new(-16.0, -16.0, 8.0)),
     );
+
+    commands.insert_resource(AmbientLight {
+        color: Color::WHITE,
+        brightness: light_consts::lux::OVERCAST_DAY,
+    });
 }
 
 fn generate_simple_mesh(
@@ -109,7 +117,10 @@ fn generate_simple_mesh(
         }
     }
 
-    let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut render_mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
     render_mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::Float32x3(positions),
@@ -122,7 +133,7 @@ fn generate_simple_mesh(
         Mesh::ATTRIBUTE_UV_0,
         VertexAttributeValues::Float32x2(vec![[0.0; 2]; num_vertices]),
     );
-    render_mesh.set_indices(Some(Indices::U32(indices.clone())));
+    render_mesh.insert_indices(Indices::U32(indices.clone()));
 
     meshes.add(render_mesh)
 }
@@ -163,7 +174,10 @@ fn generate_greedy_mesh(
         }
     }
 
-    let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut render_mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
     render_mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::Float32x3(positions),
@@ -176,7 +190,7 @@ fn generate_greedy_mesh(
         Mesh::ATTRIBUTE_UV_0,
         VertexAttributeValues::Float32x2(vec![[0.0; 2]; num_vertices]),
     );
-    render_mesh.set_indices(Some(Indices::U32(indices.clone())));
+    render_mesh.insert_indices(Indices::U32(indices.clone()));
 
     meshes.add(render_mesh)
 }

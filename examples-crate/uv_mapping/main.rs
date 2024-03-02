@@ -1,8 +1,9 @@
 use bevy::asset::LoadState;
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
-use bevy::render::render_resource::{AddressMode, PrimitiveTopology, SamplerDescriptor};
-use bevy::render::texture::ImageSampler;
+use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::render_resource::PrimitiveTopology;
+use bevy::render::texture::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor};
 use block_mesh::ndshape::{ConstShape, ConstShape3u32};
 use block_mesh::{
     greedy_quads, GreedyQuadsBuffer, MergeVoxel, Voxel, VoxelVisibility, RIGHT_HANDED_Y_UP_CONFIG,
@@ -23,7 +24,7 @@ struct Loading(Handle<Image>);
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_state::<AppState>()
+        .init_state::<AppState>()
         .add_systems(OnEnter(AppState::Loading), load_assets)
         .add_systems(Update, check_loaded.run_if(in_state(AppState::Loading)))
         .add_systems(OnEnter(AppState::Run), setup)
@@ -47,7 +48,8 @@ fn check_loaded(
     asset_server: Res<AssetServer>,
 ) {
     debug!("check loaded");
-    if let LoadState::Loaded = asset_server.get_load_state(&handle.0) {
+    if let Some(LoadState::Loaded) = asset_server.get_load_state(&handle.0) {
+        debug!("uv_checker.png loaded!");
         next_state.set(AppState::Run);
     }
 }
@@ -90,9 +92,9 @@ fn setup(
     let texture = textures.get_mut(&texture_handle.0).unwrap();
 
     // Set the texture to tile over the entire quad
-    texture.sampler_descriptor = ImageSampler::Descriptor(SamplerDescriptor {
-        address_mode_u: AddressMode::Repeat,
-        address_mode_v: AddressMode::Repeat,
+    texture.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+        address_mode_u: ImageAddressMode::Repeat,
+        address_mode_v: ImageAddressMode::Repeat,
         ..Default::default()
     });
 
@@ -139,7 +141,10 @@ fn setup(
         }
     }
 
-    let mut render_mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut render_mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::RENDER_WORLD,
+    );
 
     for uv in tex_coords.iter_mut() {
         for c in uv.iter_mut() {
@@ -150,11 +155,11 @@ fn setup(
     render_mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     render_mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     render_mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, tex_coords);
-    render_mesh.set_indices(Some(Indices::U32(indices)));
+    render_mesh.insert_indices(Indices::U32(indices));
 
     commands.spawn(PbrBundle {
         mesh: meshes.add(render_mesh),
-        material: materials.add(texture_handle.0.clone().into()),
+        material: materials.add(texture_handle.0.clone()),
         transform: Transform::from_translation(Vec3::splat(-10.0)),
         ..Default::default()
     });
@@ -163,7 +168,7 @@ fn setup(
         transform: Transform::from_translation(Vec3::new(0.0, 50.0, 50.0)),
         point_light: PointLight {
             range: 200.0,
-            intensity: 20000.0,
+            intensity: 1_000_000.0,
             ..Default::default()
         },
         ..Default::default()

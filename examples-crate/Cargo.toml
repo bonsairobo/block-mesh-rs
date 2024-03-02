@@ -3,11 +3,37 @@ name = "block-mesh-examples"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-#bevy = { version = "0.11", default-features = false, features = ["bevy_winit", "bevy_render", "bevy_asset", "bevy_pbr",  "png", "x11"] }
-# Not sure why the above doesn't work, but we can't configure the StandardMaterial in the examples then
-bevy = { version = "0.11" }
+[dependencies.bevy]
+version = "0.13"
+default-features = false
+features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_winit",
+    "png",
+    "ktx2",
+    "tonemapping_luts",
+    "zstd",
+]
 
+[target.'cfg(target_os = "linux")'.dev-dependencies.bevy]
+version = "0.13"
+default-features = false
+features = [
+    "bevy_asset",
+    "bevy_core_pipeline",
+    "bevy_pbr",
+    "bevy_render",
+    "bevy_winit",
+    "png",
+    "ktx2",
+    "tonemapping_luts",
+    "x11",
+    "wayland",
+    "zstd",
+]
 
 [dependencies.block-mesh]
 path = ".."
