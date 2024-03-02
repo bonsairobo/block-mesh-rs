@@ -8,6 +8,6 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-ilattice = "0.1"
+ilattice = "0.4"
 ndshape = "0.3"
 ndcopy = "0.3"
