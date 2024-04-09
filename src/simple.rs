@@ -1,22 +1,22 @@
-use crate::{
-    bounds::assert_in_bounds, IdentityVoxel, OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad, Voxel, VoxelVisibility,
-};
-
 use ilattice::glam::UVec3;
 use ilattice::prelude::Extent;
 use ndshape::Shape;
 
+use crate::{
+    bounds::assert_in_bounds, IdentityVoxel, OrientedBlockFace, UnitQuadBuffer, UnorientedUnitQuad,
+    Voxel, VoxelVisibility,
+};
 
 /// A fast and simple meshing algorithm that produces a single quad for every visible face of a block.
 ///
 /// This is faster than [`greedy_quads`](crate::greedy_quads) but it produces many more quads.
-pub fn visible_block_faces<T, S>(
+pub fn visible_block_faces<T: Copy, S>(
     voxels: &[T],
     voxels_shape: &S,
     min: [u32; 3],
     max: [u32; 3],
     faces: &[OrientedBlockFace; 6],
-    output: &mut UnitQuadBuffer,
+    output: &mut UnitQuadBuffer<T>,
 ) where
     T: Voxel,
     S: Shape<3, Coord = u32>,
@@ -35,13 +35,13 @@ pub fn visible_block_faces<T, S>(
 /// with the additional ability to interpret the array as some other type.
 /// Use this if you want to mesh the same array multiple times
 /// with different sets of voxels being visible.
-pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
+pub fn visible_block_faces_with_voxel_view<'a, T: Copy, V, S>(
     voxels: &'a [T],
     voxels_shape: &S,
     min: [u32; 3],
     max: [u32; 3],
     faces: &[OrientedBlockFace; 6],
-    output: &mut UnitQuadBuffer,
+    output: &mut UnitQuadBuffer<T>,
 ) where
     V: Voxel + From<&'a T>,
     S: Shape<3, Coord = u32>,
@@ -61,7 +61,8 @@ pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
     for p in interior.iter3() {
         let p_array = p.to_array();
         let p_index = voxels_shape.linearize(p_array);
-        let p_voxel = V::from(unsafe { voxels.get_unchecked(p_index as usize) });
+        let p_raw_voxel = unsafe { voxels.get_unchecked(p_index as usize) };
+        let p_voxel = V::from(p_raw_voxel);
 
         if let VoxelVisibility::Empty = p_voxel.get_visibility() {
             continue;
@@ -80,7 +81,10 @@ pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
             };
 
             if face_needs_mesh {
-                output.groups[face_index].push(UnorientedUnitQuad { minimum: p_array });
+                output.groups[face_index].push(UnorientedUnitQuad {
+                    minimum: p_array,
+                    voxel: *p_raw_voxel,
+                });
             }
         }
     }
@@ -88,9 +92,11 @@ pub fn visible_block_faces_with_voxel_view<'a, T, V, S>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::RIGHT_HANDED_Y_UP_CONFIG;
     use ndshape::{ConstShape, ConstShape3u32};
+
+    use crate::RIGHT_HANDED_Y_UP_CONFIG;
+
+    use super::*;
 
     #[test]
     #[should_panic]
@@ -139,5 +145,4 @@ mod tests {
             }
         }
     }
-
 }

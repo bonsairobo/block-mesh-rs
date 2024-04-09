@@ -1,16 +1,24 @@
 use crate::{UnorientedQuad, UnorientedUnitQuad};
 
 #[derive(Default)]
-pub struct QuadBuffer {
+pub struct QuadBuffer<V: Copy> {
     /// A group of quads for each block face. We rely on [`OrientedBlockFace`]
     /// metadata to interpret them.
-    pub groups: [Vec<UnorientedQuad>; 6],
+    pub groups: [Vec<UnorientedQuad<V>>; 6],
 }
 
-impl QuadBuffer {
+impl<V: Copy> QuadBuffer<V> {
     pub fn new() -> Self {
-        const EMPTY: Vec<UnorientedQuad> = Vec::new();
-        Self { groups: [EMPTY; 6] }
+        Self {
+            groups: [
+                Vec::<UnorientedQuad<V>>::new(),
+                Vec::<UnorientedQuad<V>>::new(),
+                Vec::<UnorientedQuad<V>>::new(),
+                Vec::<UnorientedQuad<V>>::new(),
+                Vec::<UnorientedQuad<V>>::new(),
+                Vec::<UnorientedQuad<V>>::new(),
+            ],
+        }
     }
 
     pub fn reset(&mut self) {
@@ -30,20 +38,28 @@ impl QuadBuffer {
 }
 
 #[derive(Default)]
-pub struct UnitQuadBuffer {
+pub struct UnitQuadBuffer<V> {
     /// A group of quads for each block face. We rely on [`OrientedBlockFace`]
     /// metadata to interpret them.
     ///
     /// When using these values for materials and lighting, you can access them
     /// using either the quad's minimum voxel coordinates or the vertex
     /// coordinates given by [`OrientedBlockFace::quad_corners`].
-    pub groups: [Vec<UnorientedUnitQuad>; 6],
+    pub groups: [Vec<UnorientedUnitQuad<V>>; 6],
 }
 
-impl UnitQuadBuffer {
+impl<V: Copy> UnitQuadBuffer<V> {
     pub fn new() -> Self {
-        const EMPTY: Vec<UnorientedUnitQuad> = Vec::new();
-        Self { groups: [EMPTY; 6] }
+        Self {
+            groups: [
+                Vec::<UnorientedUnitQuad<V>>::new(),
+                Vec::<UnorientedUnitQuad<V>>::new(),
+                Vec::<UnorientedUnitQuad<V>>::new(),
+                Vec::<UnorientedUnitQuad<V>>::new(),
+                Vec::<UnorientedUnitQuad<V>>::new(),
+                Vec::<UnorientedUnitQuad<V>>::new(),
+            ],
+        }
     }
 
     /// Clears the buffer.

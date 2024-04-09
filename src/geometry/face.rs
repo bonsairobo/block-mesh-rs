@@ -1,6 +1,6 @@
-use crate::{Axis, AxisPermutation, SignedAxis, UnorientedQuad};
-
 use ilattice::glam::{IVec3, UVec3};
+
+use crate::{Axis, AxisPermutation, SignedAxis, UnorientedQuad};
 
 /// Metadata that's used to aid in the geometric calculations for one of the 6 possible cube faces.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -39,12 +39,12 @@ impl OrientedBlockFace {
             AxisPermutation::even_with_normal_axis(normal.unsigned_axis()),
         )
     }
-    
+
     #[inline]
     pub fn n_sign(&self) -> i32 {
         self.n_sign
     }
-    
+
     #[inline]
     pub fn permutation(&self) -> AxisPermutation {
         self.permutation
@@ -73,7 +73,7 @@ impl OrientedBlockFace {
     /// Note that this is natural when UV coordinates have (0,0) at the bottom
     /// left, but when (0,0) is at the top left, V must be flipped.
     #[inline]
-    pub fn quad_corners(&self, quad: &UnorientedQuad) -> [UVec3; 4] {
+    pub fn quad_corners<V: Copy>(&self, quad: &UnorientedQuad<V>) -> [UVec3; 4] {
         let w_vec = self.u * quad.width;
         let h_vec = self.v * quad.height;
 
@@ -90,7 +90,11 @@ impl OrientedBlockFace {
     }
 
     #[inline]
-    pub fn quad_mesh_positions(&self, quad: &UnorientedQuad, voxel_size: f32) -> [[f32; 3]; 4] {
+    pub fn quad_mesh_positions<V: Copy>(
+        &self,
+        quad: &UnorientedQuad<V>,
+        voxel_size: f32,
+    ) -> [[f32; 3]; 4] {
         self.quad_corners(quad)
             .map(|c| (voxel_size * c.as_vec3()).to_array())
     }
@@ -127,11 +131,11 @@ impl OrientedBlockFace {
     /// If you need to use a texture atlas, you must calculate your own
     /// coordinates from the `Quad`.
     #[inline]
-    pub fn tex_coords(
+    pub fn tex_coords<V: Copy>(
         &self,
         u_flip_face: Axis,
         flip_v: bool,
-        quad: &UnorientedQuad,
+        quad: &UnorientedQuad<V>,
     ) -> [[f32; 2]; 4] {
         let face_normal_axis = self.permutation.axes()[0];
         let flip_u = if self.n_sign < 0 {

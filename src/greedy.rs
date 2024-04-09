@@ -1,13 +1,15 @@
-mod merge_strategy;
-
-pub use merge_strategy::*;
-
-use crate::{bounds::assert_in_bounds, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel, VoxelVisibility};
-
 use ilattice::glam::UVec3;
 use ilattice::prelude::Extent;
 use ndcopy::fill3;
 use ndshape::Shape;
+
+pub use merge_strategy::*;
+
+use crate::{
+    bounds::assert_in_bounds, OrientedBlockFace, QuadBuffer, UnorientedQuad, Voxel, VoxelVisibility,
+};
+
+mod merge_strategy;
 
 pub trait MergeVoxel: Voxel {
     type MergeValue: Eq;
@@ -24,15 +26,15 @@ pub trait MergeVoxel: Voxel {
 /// [`OrientedBlockFace`] and [`UnorientedQuad`] for details.
 ///
 /// This buffer can be reused between multiple calls of [`greedy_quads`] in order to avoid reallocations.
-pub struct GreedyQuadsBuffer {
-    pub quads: QuadBuffer,
+pub struct GreedyQuadsBuffer<V: Copy> {
+    pub quads: QuadBuffer<V>,
 
     // A single array is used for the visited mask because it allows us to index by the same strides as the voxels array. It
     // also only requires a single allocation.
     visited: Vec<bool>,
 }
 
-impl GreedyQuadsBuffer {
+impl<V: Copy> GreedyQuadsBuffer<V> {
     pub fn new(size: usize) -> Self {
         Self {
             quads: QuadBuffer::new(),
@@ -58,13 +60,13 @@ impl GreedyQuadsBuffer {
 ///
 /// All quads created will have the same "merge value" as defined by the [`MergeVoxel`] trait. The quads can be post-processed
 /// into meshes as the user sees fit.
-pub fn greedy_quads<T, S>(
+pub fn greedy_quads<T: Copy, S>(
     voxels: &[T],
     voxels_shape: &S,
     min: [u32; 3],
     max: [u32; 3],
     faces: &[OrientedBlockFace; 6],
-    output: &mut GreedyQuadsBuffer,
+    output: &mut GreedyQuadsBuffer<T>,
 ) where
     T: MergeVoxel,
     S: Shape<3, Coord = u32>,
@@ -80,13 +82,13 @@ pub fn greedy_quads<T, S>(
 }
 
 /// Run the greedy meshing algorithm with a custom quad merging strategy using the [`MergeStrategy`] trait.
-pub fn greedy_quads_with_merge_strategy<T, S, Merger>(
+pub fn greedy_quads_with_merge_strategy<T: Copy, S, Merger>(
     voxels: &[T],
     voxels_shape: &S,
     min: [u32; 3],
     max: [u32; 3],
     faces: &[OrientedBlockFace; 6],
-    output: &mut GreedyQuadsBuffer,
+    output: &mut GreedyQuadsBuffer<T>,
 ) where
     T: Voxel,
     S: Shape<3, Coord = u32>,
@@ -113,13 +115,13 @@ pub fn greedy_quads_with_merge_strategy<T, S, Merger>(
     }
 }
 
-fn greedy_quads_for_face<T, S, Merger>(
+fn greedy_quads_for_face<T: Copy, S, Merger>(
     voxels: &[T],
     voxels_shape: &S,
     interior: Extent<UVec3>,
     face: &OrientedBlockFace,
     visited: &mut [bool],
-    quads: &mut Vec<UnorientedQuad>,
+    quads: &mut Vec<UnorientedQuad<T>>,
 ) where
     T: Voxel,
     S: Shape<3, Coord = u32>,
@@ -216,6 +218,7 @@ fn greedy_quads_for_face<T, S, Merger>(
                 minimum: quad_min.to_array(),
                 width: quad_width,
                 height: quad_height,
+                voxel: *quad_min_voxel,
             });
         }
 
@@ -254,9 +257,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::RIGHT_HANDED_Y_UP_CONFIG;
     use ndshape::{ConstShape, ConstShape3u32};
+
+    use crate::RIGHT_HANDED_Y_UP_CONFIG;
+
+    use super::*;
 
     #[test]
     #[should_panic]

@@ -1,10 +1,11 @@
+[workspace]
 [package]
 name = "block-mesh-examples"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.6", default-features = false, features = ["bevy_winit", "render", "png", "x11"] }
+bevy = { version = "0.6", features = ["bevy_winit", "render", "png", "x11"] }
 
 
 [dependencies.block-mesh]
