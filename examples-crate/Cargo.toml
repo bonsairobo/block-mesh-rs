@@ -31,7 +31,6 @@ features = [
     "ktx2",
     "tonemapping_luts",
     "x11",
-    "wayland",
     "zstd",
 ]
 
